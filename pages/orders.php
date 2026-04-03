@@ -58,7 +58,12 @@ try {
         </div>
     </header>
 
-    <div class="orders-grid">
+    <!-- Live Search Input -->
+    <div style="margin-bottom: 24px;">
+        <input type="text" id="order-search" placeholder="Search by Order ID, Company, or Customer ID..." style="height: 50px; border-radius: 12px; font-size: 1rem; border: 1px solid var(--border-color); width: 100%; padding: 0 20px; box-shadow: var(--shadow-sm);" onkeyup="filterOrders()">
+    </div>
+
+    <div class="orders-grid" id="orders-grid">
         <?php if (count($orders) > 0): ?>
             <?php foreach ($orders as $order): 
                 $c_stmt = $conn_c->prepare("SELECT company_name FROM customers WHERE customer_id = ?");
@@ -66,6 +71,9 @@ try {
                 $company = $c_stmt->fetchColumn() ?: 'Unknown Account';
                 $status = strtolower($order['status']);
                 
+                // Combine all searchable terms into a single attribute for efficiency
+                $search_blob = strtolower($order['order_id'] . " " . $company . " " . $order['customer_id']);
+
                 $badge_bg = "#f1f5f9"; $badge_text = "#475569";
                 if ($status === 'paid' || $status === 'finalized') { $badge_bg = "#f0fdf4"; $badge_text = "#166534"; }
                 elseif ($status === 'pending') { $badge_bg = "#fffbeb"; $badge_text = "#92400e"; }
@@ -73,7 +81,7 @@ try {
                 elseif ($status === 'canceled') { $badge_bg = "#fef2f2"; $badge_text = "#991b1b"; }
                 elseif ($status === 'active') { $badge_bg = "#f5f3ff"; $badge_text = "#5b21b6"; }
             ?>
-            <div class="order-card">
+            <div class="order-card" data-search="<?= htmlspecialchars($search_blob) ?>">
                 <!-- Status Banner -->
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <span class="order-badge" style="background: <?= $badge_bg ?>; color: <?= $badge_text ?>;">
@@ -108,8 +116,42 @@ try {
                 </div>
             </div>
             <?php endforeach; ?>
-        <?php else: ?>
-            <div class="orders-empty-state">No registered orders matching this filter.</div>
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+function filterOrders() {
+    const input = document.getElementById('order-search');
+    const filter = input.value.toLowerCase();
+    const cards = document.getElementsByClassName('order-card');
+    let hasResults = false;
+
+    for (let i = 0; i < cards.length; i++) {
+        const searchBlob = cards[i].getAttribute('data-search');
+        if (searchBlob.includes(filter)) {
+            cards[i].style.display = "";
+            hasResults = true;
+        } else {
+            cards[i].style.display = "none";
+        }
+    }
+
+    // Handle empty state during search
+    const emptyState = document.querySelector('.orders-empty-state');
+    if (!hasResults) {
+        if (!emptyState) {
+            const grid = document.getElementById('orders-grid');
+            const msg = document.createElement('div');
+            msg.className = 'orders-empty-state';
+            msg.innerText = 'No batches found matching "' + input.value + '"';
+            grid.appendChild(msg);
+        } else {
+            emptyState.style.display = 'block';
+            emptyState.innerText = 'No batches found matching "' + input.value + '"';
+        }
+    } else if (emptyState) {
+        emptyState.style.display = 'none';
+    }
+}
+</script>

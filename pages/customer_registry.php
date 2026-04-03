@@ -73,7 +73,7 @@ try {
     </div>
 
     <div class="search-box" style="margin-bottom: 20px;">
-        <input type="text" id="cust-search" placeholder="Search by name or ID..." style="height: 40px; font-size: 0.9rem;" onkeyup="filterCustomers()">
+        <input type="text" id="cust-search" placeholder="Search by name or ID..." style="font-size: 0.9rem;" onkeyup="filterCustomers()">
     </div>
 
     <div class="registry-list" id="customer-list">
@@ -96,20 +96,22 @@ try {
             $c['completed_count'] = $completed_count;
             $c['active_count'] = $active_count;
         }
+        unset($c);
 
         if (count($customers) > 0) {
-            foreach($customers as $c) {
+                foreach($customers as $c) {
                 $json_data = htmlspecialchars(json_encode($c), ENT_QUOTES, 'UTF-8');
-                echo "<div class='cust-card' onclick='showDetails(this)' data-customer='{$json_data}' data-search='" . htmlspecialchars($c['company_name'] . " " . $c['customer_id']) . "' style='margin-bottom:0;'>
+                echo "<div class='cust-card' onclick='showDetails(this)' data-customer='{$json_data}' data-search='" . htmlspecialchars($c['company_name'] . " " . $c['customer_id']) . "'>
                         <div class='cust-main'>
                             <div class='cust-name'>" . htmlspecialchars($c['company_name']) . "</div>
-                            <div style='display:flex; align-items:center; gap: 8px;'>
-                                <div style='font-size: 0.7rem; background: #f0fdf4; color:#166534; padding:2px 6px; border-radius:10px; font-weight:700;'>{$c['completed_count']} Completed Orders</div>
-                                " . ($c['active_count'] > 0 ? "<div style='font-size: 0.7rem; background: #fffbeb; color:#92400e; padding:2px 6px; border-radius:10px; font-weight:700;'>{$c['active_count']} Drafts</div>" : "") . "
+                            <div style='font-size: 0.75rem; font-family: monospace; color: var(--text-secondary); margin-bottom: 8px;'>" . htmlspecialchars($c['customer_id']) . "</div>
+                            <div style='display:flex; align-items:center; flex-wrap: wrap; gap: 8px;'>
+                                <div style='font-size: 0.7rem; background: #f0fdf4; color:#166534; padding:3px 8px; border-radius:10px; font-weight:700; white-space: nowrap;'>{$c['completed_count']} Completed</div>
+                                " . ($c['active_count'] > 0 ? "<div style='font-size: 0.7rem; background: #fffbeb; color:#92400e; padding:3px 8px; border-radius:10px; font-weight:700; white-space: nowrap;'>{$c['active_count']} Drafts</div>" : "") . "
                             </div>
                         </div>
                         <div class='card-actions'>
-                            <a href='#customer-details' class='btn-view-cust' title='View Details' onclick='event.stopPropagation(); showDetails(this.closest(\".cust-card\"));'>👁</a>
+                            <div class='btn-view-cust' title='View Details'>👁</div>
                         </div>
                       </div>";
             }
