@@ -80,9 +80,8 @@
         }
         ?>
     </div>
-    <!-- Live TypeScript compiler for browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="text/babel" data-presets="typescript" src="assets/ts/new_order.ts"></script>
+    <!-- Load compiled JavaScript directly for performance/mobile compatibility -->
+    <script src="assets/js/new_order.js"></script>
 </body>
 
 </html>

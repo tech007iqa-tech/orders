@@ -127,10 +127,10 @@ try {
             <table class="receipt-table">
                 <thead>
                     <tr>
-                        <th style="padding-left: 0;">Item Description</th>
-                        <th style="text-align: center; width: 70px;">Qty</th>
-                        <th style="text-align: right; width: 100px;">Price</th>
-                        <th style="text-align: right; width: 110px; padding-right: 0;">Subtotal</th>
+                        <th class="col-desc" style="padding-left: 0;">Item Description</th>
+                        <th class="col-qty" style="text-align: center;">Qty</th>
+                        <th class="col-price" style="text-align: right;">Price</th>
+                        <th class="col-total" style="text-align: right; padding-right: 0;">Subtotal</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -146,22 +146,22 @@ try {
                             $grand_total += $subtotal;
                     ?>
                     <tr class="item-row" data-id="<?= $item['id'] ?>">
-                        <td style="padding-left: 0;">
+                        <td class="col-desc" style="padding-left: 0;">
                             <div style="font-weight: 700;"><?= htmlspecialchars($item['brand'] . " " . $item['model']) ?></div>
                             <div style="font-size: 0.825rem; color: var(--text-secondary);"><?= htmlspecialchars($item['series']) ?> | <span style="color: var(--accent-color); font-weight:800;"><?= htmlspecialchars($item['cpu'] ?? '') ?></span> | <?= htmlspecialchars($item['description']) ?></div>
                         </td>
-                        <td style="text-align: center;">
+                        <td class="col-qty" style="text-align: center;">
                             <span class="print-only" style="font-weight: 700;"><?= (int)$qty ?></span>
-                            <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" style="width: 105px; text-align: center; height: 40px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 800; font-size: 1.1rem; background: #fff;" oninput="recalculateTotals()">
+                            <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()">
                         </td>
-                        <td style="text-align: right;">
+                        <td class="col-price" style="text-align: right;">
                             <span class="print-only">$<?= number_format($price, 0) ?></span>
-                            <div class="no-print" style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+                            <div class="no-print price-input-wrapper">
                                 <span style="font-weight: 700;">$</span>
-                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= (int)$price ?>" step="1" min="0" class="price-input" style="width: 90px; text-align: right; height: 40px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 800; font-size: 1.1rem; background: #fff;" oninput="recalculateTotals()">
+                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= (int)$price ?>" step="1" min="0" class="price-input" oninput="recalculateTotals()">
                             </div>
                         </td>
-                        <td style="text-align: right; font-weight: 700; color: var(--text-main); padding-right: 0;">
+                        <td class="col-total" style="text-align: right; font-weight: 700; color: var(--text-main); padding-right: 0;">
                             $<span class="row-subtotal"><?= number_format($subtotal, 0) ?></span>
                         </td>
                     </tr>
@@ -171,9 +171,9 @@ try {
                         <td colspan="4"><div class="empty-state">No items found.</div></td>
                     </tr>
                     <?php endif; ?>
-                    <tr>
-                        <td colspan="3" class="total-row" style="padding-left: 0;">Total Amount Due</td>
-                        <td class="total-row" style="text-align: right; color: var(--accent-color); padding-right: 0;">
+                    <tr class="row-total">
+                        <td colspan="3" class="total-label" style="padding-left: 0;">Total Amount Due</td>
+                        <td class="total-amount" style="text-align: right; color: var(--accent-color); padding-right: 0;">
                             $<span id="grand-total-display"><?= number_format($grand_total, 0) ?></span>
                         </td>
                     </tr>

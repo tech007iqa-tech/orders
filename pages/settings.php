@@ -82,6 +82,25 @@ try {
             }
         }
     }
+    // 3. Handle System Maintenance (Admin Only)
+    if ($_SESSION['username'] === 'admin' && isset($_POST['action']) && $_POST['action'] === 'cleanup_customers') {
+        $db_cust_file = realpath('assets/db/customers.db');
+        $db_orders_file = realpath('assets/db/orders.db');
+        try {
+            if (!$db_cust_file || !$db_orders_file) throw new Exception("Database files not found.");
+            
+            $conn_m = new PDO("sqlite:" . $db_cust_file);
+            $conn_m->exec("ATTACH DATABASE '" . $db_orders_file . "' AS db_o");
+            
+            // Delete customers with no orders
+            $sql_clean = "DELETE FROM customers WHERE customer_id NOT IN (SELECT DISTINCT customer_id FROM db_o.orders)";
+            $stmt_clean = $conn_m->prepare($sql_clean);
+            $stmt_clean->execute();
+            $removed = $stmt_clean->rowCount();
+            
+            $message = "Cleanup complete! Removed {$removed} customer(s) with 0 orders.";
+        } catch (Exception $e) { $error = "Cleanup failed: " . $e->getMessage(); }
+    }
 } catch (PDOException $e) { $error = "Database error: " . $e->getMessage(); }
 
 ?>
@@ -223,6 +242,26 @@ try {
                 }
             ?>
         </ul>
+    </div>
+    <?php endif; ?>
+    <!-- 4. SYSTEM MAINTENANCE CARD (ADMIN ONLY) -->
+    <?php if ($_SESSION['username'] === 'admin'): ?>
+    <div class="settings-card" style="border-top: 4px solid #ef4444;">
+        <div class="settings-header">
+            <h1 style="color: #991b1b;">System Maintenance</h1>
+            <p class="subtitle">Perform administrative cleanup tasks to keep the database tidy.</p>
+        </div>
+
+        <form method="POST" onsubmit="return confirm('This will permanently delete all customers who have never placed an order. Are you sure?');">
+            <input type="hidden" name="action" value="cleanup_customers">
+            <div style="background: #fef2f2; border: 1px solid #fee2e2; padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                <h3 style="font-size: 0.9rem; color: #991b1b; margin-bottom: 8px;">Purge Inactive Customers</h3>
+                <p style="font-size: 0.8rem; color: #7f1d1d; line-height: 1.4;">Identify and remove customer profiles that haven't been assigned to any orders or batches yet.</p>
+            </div>
+            <button type="submit" class="btn-main" style="width: 100%; padding: 16px; border-radius: 12px; background: #ef4444; color: white; border: none; font-weight: 800; cursor: pointer;">
+                🗑️ Clean Up 0-Order Customers
+            </button>
+        </form>
     </div>
     <?php endif; ?>
 </div>
