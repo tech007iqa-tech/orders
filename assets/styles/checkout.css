@@ -242,3 +242,96 @@
         margin-top: 80px;
     }
 }
+.item-row {
+    transition: background-color 0.2s;
+}
+
+.item-row:hover {
+    background-color: #f1f5f9 !important;
+}
+
+/* Modal Editor Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh; /* iOS Safari toolbar fix */
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px) saturate(180%);
+    -webkit-backdrop-filter: blur(8px) saturate(180%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 15px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-box {
+    background: white;
+    width: 100%;
+    max-width: 550px;
+    max-height: 90vh;
+    max-height: 90dvh;
+    overflow-y: auto; /* Scrollable inside if keyboard opens */
+    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+    padding: 35px 25px; /* Adjust padding for mobile */
+    border-radius: 28px;
+    box-shadow: 0 30px 60px -12px rgba(15, 23, 42, 0.3);
+    transform: translateY(30px) scale(0.95);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+    opacity: 0;
+}
+
+.modal-overlay.active .modal-box {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+}
+
+.modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.modal-box .form-group label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.modal-box .form-group input,
+.modal-box .form-group textarea {
+    width: 100%;
+    font-size: 16px !important; /* CRITICAL: Prevents iOS Safari from auto-zooming on focus */
+    font-weight: 600;
+}
+
+.modal-box .form-group input {
+    height: 48px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0 15px;
+}
+
+.modal-box .form-group textarea {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+@media (max-width: 500px) {
+    .modal-grid { grid-template-columns: 1fr; }
+    .modal-grid .form-group { grid-column: span 1 !important; }
+}

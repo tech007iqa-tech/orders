@@ -23,13 +23,28 @@ try {
     $conn_cust = new PDO("sqlite:" . $db_cust);
     $conn_items->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Handle Quantity, Price Updates & Finalization
+    // Handle Full Item Metadata & Finalization
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $prices = $_POST['unit_prices'] ?? [];
-        $qtys = $_POST['quantities'] ?? [];
         $order_id = $_GET['order_id'] ?? ($_POST['order_id'] ?? 'ORD-DEFAULT');
 
-        // 1. Update individual item values (always save changes)
+        // Check if it's a specific single item update (Modal Save) or bulk save
+        if (isset($_POST['action']) && $_POST['action'] === 'save_single_item') {
+            $stmt = $conn_items->prepare("UPDATE items SET 
+                brand = ?, model = ?, series = ?, cpu = ?, description = ?, 
+                quantity = ?, unit_price = ? 
+                WHERE id = ? AND customer_id = ?");
+            $stmt->execute([
+                $_POST['brand'], $_POST['model'], $_POST['series'], $_POST['cpu'], $_POST['description'],
+                (int)$_POST['quantity'], (float)$_POST['unit_price'], (int)$_POST['item_id'], $customer_id
+            ]);
+            echo json_encode(['status' => 'success']);
+            exit();
+        }
+
+        // Bulk Save (Original Table Form)
+        $prices = $_POST['unit_prices'] ?? [];
+        $qtys = $_POST['quantities'] ?? [];
+
         $stmt = $conn_items->prepare("UPDATE items SET unit_price = ?, quantity = ? WHERE id = ? AND customer_id = ?");
         foreach($prices as $id => $val) {
             $qty = (int)($qtys[$id] ?? 0);
@@ -138,27 +153,34 @@ try {
                     $total_items = 0;
                     $grand_total = 0;
                     if (count($items) > 0):
-                        foreach($items as $item):
+                        foreach($items as $index => $item):
                             $qty = $item['quantity'];
                             $price = $item['unit_price'] ?? 0;
                             $subtotal = $qty * $price;
                             $total_items += $qty;
                             $grand_total += $subtotal;
                     ?>
-                    <tr class="item-row" data-id="<?= $item['id'] ?>">
+                    <tr class="item-row" data-id="<?= $item['id'] ?>" onclick="openEditModal(<?= $index ?>)" title="Click to Edit Full Metadata" style="cursor: pointer;">
                         <td class="col-desc" style="padding-left: 0;">
-                            <div style="font-weight: 700;"><?= htmlspecialchars($item['brand'] . " " . $item['model']) ?></div>
-                            <div style="font-size: 0.825rem; color: var(--text-secondary);"><?= htmlspecialchars($item['series']) ?> | <span style="color: var(--accent-color); font-weight:800;"><?= htmlspecialchars($item['cpu'] ?? '') ?></span> | <?= htmlspecialchars($item['description']) ?></div>
+                            <a href="#modal-brand"><div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                                <div class="copyable-text" style="flex: 1;">
+                                    <div style="font-weight: 700;"><?= htmlspecialchars($item['brand'] . " " . $item['model']) ?></div>
+                                    <div style="font-size: 0.825rem; color: var(--text-secondary);"><?= htmlspecialchars($item['series']) ?> | <span style="color: var(--accent-color); font-weight:800;"><?= htmlspecialchars($item['cpu'] ?? '') ?></span> | <?= htmlspecialchars($item['description']) ?></div>
+                                </div></a>
+                                <button type="button" class="btn-copy no-print" onclick="event.stopPropagation(); copyEntry(this)" title="Copy Description" style="background: none; border: none; cursor: pointer; padding: 4px; font-size: 0.9rem; opacity: 0.4; transition: opacity 0.2s; flex-shrink: 0;">
+                                    📋
+                                </button>
+                            </div>
                         </td>
                         <td class="col-qty" style="text-align: center;">
                             <span class="print-only" style="font-weight: 700;"><?= (int)$qty ?></span>
-                            <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()">
+                            <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()" onclick="event.stopPropagation()">
                         </td>
                         <td class="col-price" style="text-align: right;">
                             <span class="print-only">$<?= number_format($price, 0) ?></span>
                             <div class="no-print price-input-wrapper">
                                 <span style="font-weight: 700;">$</span>
-                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= (int)$price ?>" step="1" min="0" class="price-input" oninput="recalculateTotals()">
+                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= (int)$price ?>" step="1" min="0" class="price-input" oninput="recalculateTotals()" onclick="event.stopPropagation()">
                             </div>
                         </td>
                         <td class="col-total" style="text-align: right; font-weight: 700; color: var(--text-main); padding-right: 0;">
@@ -194,7 +216,7 @@ try {
                     </button>
                 </div>
                 
-                <button type="submit" name="finalize_order" value="true" class="btn-main" style="border: none; cursor: pointer; text-decoration:none; display:flex; align-items:center; justify-content:center; background: var(--accent-color); color: white; border-radius: 12px; font-weight: 800; height: 54px; box-shadow: 0 4px 12px rgba(140, 198, 63, 0.2);">
+                <button type="submit" name="finalize_order" value="true" class="btn-main" style="border: none; cursor: pointer; text-decoration:none; display:flex; align-items:center; justify-content:center; background: var(--accent-color); color: white; border-radius: 14px; font-weight: 800; height: 54px; box-shadow: 0 4px 12px rgba(140, 198, 63, 0.2);">
                     ✅ Finalize & Finish Batch
                 </button>
             </div>
@@ -304,6 +326,93 @@ try {
             });
             document.getElementById('grand-total-display').innerText = grandTotal.toLocaleString();
         }
+
+        function copyEntry(btn) {
+            const container = btn.closest('.col-desc');
+            const textNode = container.querySelector('.copyable-text');
+            const text = textNode.innerText.trim();
+            
+            // Robust copy function for mobile/Safari compatibility
+            const performCopy = (textToCopy) => {
+                if (navigator.clipboard && window.isSecureContext) {
+                    return navigator.clipboard.writeText(textToCopy);
+                } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = textToCopy;
+                    textArea.style.position = "fixed";
+                    textArea.style.left = "-9999px";
+                    textArea.style.top = "0";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                    } catch (err) {}
+                    document.body.removeChild(textArea);
+                    return Promise.resolve();
+                }
+            };
+
+            performCopy(text).then(() => {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅';
+                btn.style.opacity = '1';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.opacity = '0.4';
+                }, 1500);
+            });
+        }
+
+        // --- Modal Logic ---
+        function openEditModal(index) {
+            const item = rawItems[index];
+            if (!item) return;
+
+            document.getElementById('editModal').classList.add('active');
+            document.getElementById('modal-item-id').value = item.id;
+            document.getElementById('modal-brand').value = item.brand;
+            document.getElementById('modal-model').value = item.model;
+            document.getElementById('modal-series').value = item.series;
+            document.getElementById('modal-cpu').value = item.cpu;
+            document.getElementById('modal-desc').value = item.description;
+            document.getElementById('modal-qty').value = item.quantity;
+            document.getElementById('modal-price').value = Math.round(item.unit_price);
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        function saveItemChanges() {
+            const formData = new FormData();
+            formData.append('action', 'save_single_item');
+            formData.append('item_id', document.getElementById('modal-item-id').value);
+            formData.append('brand', document.getElementById('modal-brand').value);
+            formData.append('model', document.getElementById('modal-model').value);
+            formData.append('series', document.getElementById('modal-series').value);
+            formData.append('cpu', document.getElementById('modal-cpu').value);
+            formData.append('description', document.getElementById('modal-desc').value);
+            formData.append('quantity', document.getElementById('modal-qty').value);
+            formData.append('unit_price', document.getElementById('modal-price').value);
+
+            const saveBtn = document.querySelector('.modal-box .btn-main');
+            const origText = saveBtn.innerText;
+            saveBtn.innerText = 'Syncing...';
+            saveBtn.disabled = true;
+
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            }).then(res => res.json()).then(data => {
+                if (data.status === 'success') location.reload();
+                else alert('Sync failed. Try again.');
+            }).catch(err => {
+                saveBtn.innerText = origText;
+                saveBtn.disabled = false;
+                alert('Connection Lost.');
+            });
+        }
         </script>
 
         <!-- Final Manifest Approval (Print Exclusive) -->
@@ -314,6 +423,55 @@ try {
                     <strong>Approved By:</strong> <?= htmlspecialchars($_SESSION['display_name'] ?? $_SESSION['username'] ?? '________________________') ?>
                 </span>
                 <span><strong>Page 1 of 1</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal Structure -->
+    <div id="editModal" class="modal-overlay no-print" onclick="if(event.target === this) closeEditModal()">
+        <div class="modal-box">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 25px;">
+                <h3 style="font-weight: 800; font-size: 1.25rem;">📝 Edit Item</h3>
+                <button type="button" onclick="closeEditModal()" style="background:none; border:none; cursor:pointer; font-size:1.5rem; opacity:0.5;">&times;</button>
+            </div>
+            
+            <input type="hidden" id="modal-item-id">
+            
+            <div class="modal-grid">
+                <div class="form-group">
+                    <label>Brand</label>
+                    <input type="text" id="modal-brand">
+                </div>
+                <div class="form-group">
+                    <label>Model</label>
+                    <input type="text" id="modal-model">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Series / Project ID</label>
+                    <input type="text" id="modal-series">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>CPU / Gen</label>
+                    <input type="text" id="modal-cpu">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Condition / Comments</label>
+                    <textarea id="modal-desc" style="width:100%; min-height:80px; border-radius:10px; border:1px solid #ddd; padding:10px;"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="modal-qty">
+                </div>
+                <div class="form-group">
+                    <label>Unit Price ($)</label>
+                    <input type="number" id="modal-price">
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <button type="button" onclick="saveItemChanges()" class="btn-main" style="width:100%; border:none; cursor:pointer; height: 54px; background: var(--text-main); color: white; border-radius: 14px; font-weight: 800;">
+                    Complete Row Adjustments
+                </button>
             </div>
         </div>
     </div>

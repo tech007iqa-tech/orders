@@ -196,11 +196,14 @@ unset($_SESSION['message']);
 <div class="summary-side">
     <section class="item-list">
         <h2>Order Summary</h2>
+        <div style="margin-bottom: 15px;">
+            <input type="text" id="summary-search" onkeyup="filterSummary()" placeholder="Search added items..." style="width: 100%; height: 40px; padding: 0 15px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+        </div>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>Item</th>
+                        <th class="col-desc" style="padding-left: 0;">Item Description</th>
                         <th>Qty</th>
                     </tr>
                 </thead>
@@ -212,17 +215,16 @@ unset($_SESSION['message']);
                     
                     if (count($items) > 0) {
                         foreach($items as $row) {
-                            echo "<tr>
-                                    <td>
-                                        <div class='item-row-content'>
-                                            <div class='item-info'>
-                                                <div class='item-main'>" . htmlspecialchars($row['brand']) . " " . htmlspecialchars($row['model']) . "</div>
-                                                <div class='item-sub'>
-                                                     <span>" . htmlspecialchars($row['series']) . "</span>
-                                                     <span class='cpu-highlight'>" . htmlspecialchars($row['cpu'] ?? '') . "</span>
-                                                     <span class='desc-badge'>" . htmlspecialchars($row['description']) . "</span>
-                                                 </div>
+                            echo "<tr class='summary-item-row'>
+                                    <td class='col-desc' style='padding-left: 0;'>
+                                        <div style='display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;'>
+                                            <div class='copyable-text' style='flex: 1;'>
+                                                <div style='font-weight: 700;'>" . htmlspecialchars($row['brand'] . " " . $row['model']) . "</div>
+                                                <div style='font-size: 0.825rem; color: var(--text-secondary);'>" . htmlspecialchars($row['series']) . " | <span style='color: var(--accent-color); font-weight:800;'>" . htmlspecialchars($row['cpu'] ?? '') . "</span> | " . htmlspecialchars($row['description']) . "</div>
                                             </div>
+                                            <button type='button' class='btn-copy no-print' onclick='copyEntry(this)' title='Copy Description' style='background: none; border: none; cursor: pointer; padding: 4px; font-size: 0.8rem; opacity: 0.3; transition: opacity 0.2s; flex-shrink: 0;'>
+                                                📋
+                                            </button>
                                         </div>
                                     </td>
                                     <td>
@@ -264,3 +266,55 @@ unset($_SESSION['message']);
         <?php endif; ?>
     </section>
 </div>
+
+<script>
+function copyEntry(btn) {
+    const container = btn.closest('.col-desc');
+    const textNode = container.querySelector('.copyable-text');
+    const text = textNode.innerText.trim();
+    
+    const performCopy = (textToCopy) => {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(textToCopy);
+        } else {
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {}
+            document.body.removeChild(textArea);
+            return Promise.resolve();
+        }
+    };
+
+    performCopy(text).then(() => {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✅';
+        btn.style.opacity = '1';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.style.opacity = '0.3';
+        }, 1500);
+    });
+}
+
+function filterSummary() {
+    const filter = document.getElementById('summary-search').value.toLowerCase();
+    const rows = document.getElementsByClassName('summary-item-row');
+
+    for (let i = 0; i < rows.length; i++) {
+        const text = rows[i].innerText.toLowerCase();
+        if (text.includes(filter)) {
+            rows[i].style.display = "";
+        } else {
+            rows[i].style.display = "none";
+        }
+    }
+}
+</script>
