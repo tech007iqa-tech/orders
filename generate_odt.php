@@ -48,7 +48,7 @@ $flat_xml = '<?xml version="1.0" encoding="UTF-8"?>
     </style:style>
     <style:style style:name="P2" style:family="paragraph" style:parent-style-name="Standard">
       <style:paragraph-properties fo:text-align="center" fo:margin-top="0.04in" fo:margin-bottom="0in"/>
-      <style:text-properties fo:font-size="7pt" style:font-name="Arial" fo:font-weight="bold"/>
+      <style:text-properties fo:font-size="7pt" style:font-name="Times New Roman" fo:font-weight="bold"/>
     </style:style>
   </office:automatic-styles>
   <office:master-styles>
