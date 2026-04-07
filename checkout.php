@@ -417,6 +417,26 @@ try {
             });
         }
 
+        function printLabel() {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'generate_odt.php';
+
+            const fields = ['brand', 'model', 'series', 'cpu', 'desc'];
+            fields.forEach(f => {
+                const hiddenField = document.createElement('input');
+                hiddenField.type = 'hidden';
+                // map "desc" to "description" for the backend
+                hiddenField.name = f === 'desc' ? 'description' : f; 
+                hiddenField.value = document.getElementById('modal-' + f).value;
+                form.appendChild(hiddenField);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
         function filterManifest() {
             const filter = document.getElementById('manifest-search').value.toLowerCase();
             const rows = document.getElementsByClassName('item-row');
@@ -485,8 +505,11 @@ try {
                 </div>
             </div>
 
-            <div style="margin-top: 30px;">
-                <button type="button" onclick="saveItemChanges()" class="btn-main" style="width:100%; border:none; cursor:pointer; height: 54px; background: var(--text-main); color: white; border-radius: 14px; font-weight: 800;">
+            <div style="margin-top: 30px; display: flex; gap: 15px;">
+                <button type="button" onclick="printLabel()" class="btn-main" title="Generate 2x1 Thermal Label" style="flex: 1; border: 2px solid var(--border-color); cursor:pointer; height: 54px; background: transparent; color: var(--text-main); border-radius: 14px; font-weight: 800;">
+                    🖨️ Print Label (.odt)
+                </button>
+                <button type="button" onclick="saveItemChanges()" class="btn-main" style="flex: 1; border:none; cursor:pointer; height: 54px; background: var(--text-main); color: white; border-radius: 14px; font-weight: 800;">
                     Complete Row Adjustments
                 </button>
             </div>
