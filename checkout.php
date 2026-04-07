@@ -124,6 +124,9 @@ try {
             <div class="icon-check">✓</div>
             <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Final Batch Verification</h1>
             <p class="subtitle">Review quantities and pricing for this manifest before final submission.</p>
+            <div style="margin-top: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
+                <input type="text" id="manifest-search" onkeyup="filterManifest()" placeholder="Search items by Brand, Model, Serial, etc..." style="width: 100%; height: 48px; border-radius: 12px; border: 1px solid var(--border-color); font-size: 16px; padding: 0 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            </div>
         </div>
 
         <div style="border-bottom: 1px dashed var(--border-color); padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between;">
@@ -412,6 +415,20 @@ try {
                 saveBtn.disabled = false;
                 alert('Connection Lost.');
             });
+        }
+
+        function filterManifest() {
+            const filter = document.getElementById('manifest-search').value.toLowerCase();
+            const rows = document.getElementsByClassName('item-row');
+
+            for (let i = 0; i < rows.length; i++) {
+                const text = rows[i].innerText.toLowerCase();
+                if (text.includes(filter)) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
         }
         </script>
 

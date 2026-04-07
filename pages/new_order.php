@@ -65,6 +65,14 @@ try {
             if ($stmt->execute([$delete_id])) {
                 $_SESSION['message'] = "<div class='alert success'>Item removed from order.</div>";
             }
+        } elseif (isset($_POST['action']) && $_POST['action'] === 'update_item') {
+            $update_id = $_POST['update_id'] ?? 0;
+            $qty = $_POST['update_qty'] ?? 1;
+            $price = $_POST['update_price'] ?? 0.00;
+            $stmt = $conn->prepare("UPDATE items SET quantity = ?, unit_price = ? WHERE id = ?");
+            if ($stmt->execute([$qty, $price, $update_id])) {
+                $_SESSION['message'] = "<div class='alert success'>Item updated.</div>";
+            }
         } else {
             $brand = $_POST['brand'] ?? '';
             $models = $_POST['models'] ?? '';
@@ -88,7 +96,13 @@ try {
         // PRG Pattern
         $cust_param = urlencode($_POST['customer_id'] ?? $current_customer);
         $order_param = urlencode($_POST['order_id'] ?? $current_order);
-        header("Location: index.php?customer_id=" . $cust_param . "&order_id=" . $order_param);
+        
+        $anchor = '';
+        if (isset($_POST['action']) && in_array($_POST['action'], ['delete', 'update_item'])) {
+            $anchor = '#order-summary';
+        }
+
+        header("Location: index.php?customer_id=" . $cust_param . "&order_id=" . $order_param . $anchor);
         exit();
     }
 } catch(PDOException $e) {
@@ -169,12 +183,9 @@ unset($_SESSION['message']);
             <label for="description">Condition / Comments*</label>
             <input list="desc-options" id="description" name="description" placeholder="e.g. Working, Screen Damage" required aria-label="Condition Selection">
             <datalist id="desc-options">
-                <option value="Working / Good">
-                <option value="Refurbished">
-                <option value="Untested">
                 <option value="Tested">
+                <option value="Untested">
                 <option value="Parts">
-                <option value="Not Working">
             </datalist>
         </div>
         
@@ -194,7 +205,7 @@ unset($_SESSION['message']);
 </div>
 
 <div class="summary-side">
-    <section class="item-list">
+    <section class="item-list" id="order-summary">
         <h2>Order Summary</h2>
         <div style="margin-bottom: 15px;">
             <input type="text" id="summary-search" onkeyup="filterSummary()" placeholder="Search added items..." style="width: 100%; height: 40px; padding: 0 15px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
@@ -209,7 +220,7 @@ unset($_SESSION['message']);
                 </thead>
                 <tbody>
                     <?php
-                    $stmt = $conn->prepare("SELECT * FROM items WHERE customer_id = ? AND order_id = ? ORDER BY id DESC LIMIT 20");
+                    $stmt = $conn->prepare("SELECT * FROM items WHERE customer_id = ? AND order_id = ? ORDER BY id DESC");
                     $stmt->execute([$current_customer, $current_order]);
                     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
@@ -222,18 +233,37 @@ unset($_SESSION['message']);
                                                 <div style='font-weight: 700;'>" . htmlspecialchars($row['brand'] . " " . $row['model']) . "</div>
                                                 <div style='font-size: 0.825rem; color: var(--text-secondary);'>" . htmlspecialchars($row['series']) . " | <span style='color: var(--accent-color); font-weight:800;'>" . htmlspecialchars($row['cpu'] ?? '') . "</span> | " . htmlspecialchars($row['description']) . "</div>
                                             </div>
-                                            <button type='button' class='btn-copy no-print' onclick='copyEntry(this)' title='Copy Description' style='background: none; border: none; cursor: pointer; padding: 4px; font-size: 0.8rem; opacity: 0.3; transition: opacity 0.2s; flex-shrink: 0;'>
-                                                📋
-                                            </button>
+                                            <div style='display: flex; flex-direction: column; gap: 4px; align-items: center;'>
+                                                <button type='button' class='btn-copy no-print' onclick='copyEntry(this)' title='Copy Description' style='background: none; border: none; cursor: pointer; padding: 4px; font-size: 0.8rem; opacity: 0.3; transition: opacity 0.2s; flex-shrink: 0;'>
+                                                    📋
+                                                </button>
+                                                <button type='button' class='btn-edit no-print' onclick='toggleInlineEdit(this)' title='Edit Quantity/Price' style='background: none; border: none; cursor: pointer; padding: 4px; font-size: 0.8rem; opacity: 0.3; transition: opacity 0.2s; flex-shrink: 0;'>
+                                                    ✏️
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <div class='qty-pricing-box'>
-                                            <span class='qty-chip'>" . htmlspecialchars($row['quantity']) . "</span>
-                                            <div class='qty-unit-cost'>
-                                                $" . number_format($row['unit_price'] ?? 0, 0) . "
+                                        <div class='static-view qty-pricing-box' style='display:flex; flex-direction:column; align-items:flex-end; gap:4px;'>
+                                            <span class='qty-chip' style='background:#f1f5f9; padding:4px 8px; border-radius:6px; font-weight:800; font-size:0.8rem; color:#475569;'>" . htmlspecialchars($row['quantity']) . "x</span>
+                                            <div class='qty-unit-cost' style='font-weight:700; color:var(--text-main); font-size:1rem;'>
+                                                $" . number_format($row['unit_price'] ?? 0, 2) . "
                                             </div>
                                         </div>
+                                        <form method='POST' class='edit-view' style='display:none;'>
+                                            <input type='hidden' name='action' value='update_item'>
+                                            <input type='hidden' name='update_id' value='{$row['id']}'>
+                                            <input type='hidden' name='customer_id' value='" . htmlspecialchars($current_customer) . "'>
+                                            <input type='hidden' name='order_id' value='" . htmlspecialchars($current_order) . "'>
+                                            <div class='qty-pricing-box' style='display:flex; gap: 8px; align-items:center;'>
+                                                <input type='number' name='update_qty' value='" . htmlspecialchars($row['quantity']) . "' min='1' style='width: 50px; height: 32px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center; font-weight: 700;' onchange='this.form.submit()'>
+                                                <div style='display:flex; align-items:center;'>
+                                                    <span style='margin-right: 4px; font-weight:700;'>$</span>
+                                                    <input type='number' step='0.01' name='update_price' value='" . htmlspecialchars($row['unit_price'] ?? 0) . "' min='0' style='width: 70px; height: 32px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: 700;' onchange='this.form.submit()'>
+                                                </div>
+                                            </div>
+                                            <button type='submit' style='margin-top: 6px; width: 100%; border: none; background: #e2e8f0; color: var(--text-main); border-radius: 6px; cursor: pointer; height: 26px; font-size: 0.75rem; font-weight: 800;'>Done</button>
+                                        </form>
                                     </td>
                                     <td class='action-cell'>
                                         <form method='POST' style='display:inline;' onsubmit=\"return confirm('Remove this item?');\">
@@ -302,6 +332,22 @@ function copyEntry(btn) {
             btn.style.opacity = '0.3';
         }, 1500);
     });
+}
+
+function toggleInlineEdit(btn) {
+    const row = btn.closest('tr');
+    const staticView = row.querySelector('.static-view');
+    const editView = row.querySelector('.edit-view');
+    
+    if (staticView.style.display === 'none') {
+        staticView.style.display = 'flex';
+        editView.style.display = 'none';
+        btn.style.opacity = '0.3';
+    } else {
+        staticView.style.display = 'none';
+        editView.style.display = 'block';
+        btn.style.opacity = '1';
+    }
 }
 
 function filterSummary() {
