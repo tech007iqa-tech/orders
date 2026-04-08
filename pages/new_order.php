@@ -256,10 +256,10 @@ unset($_SESSION['message']);
                                             <input type='hidden' name='customer_id' value='" . htmlspecialchars($current_customer) . "'>
                                             <input type='hidden' name='order_id' value='" . htmlspecialchars($current_order) . "'>
                                             <div class='qty-pricing-box' style='display:flex; gap: 8px; align-items:center;'>
-                                                <input type='number' name='update_qty' value='" . htmlspecialchars($row['quantity']) . "' min='1' style='width: 50px; height: 32px; border-radius: 6px; border: 1px solid var(--border-color); text-align: center; font-weight: 700;' onchange='this.form.submit()'>
+                                                <input type='number' name='update_qty' value='" . htmlspecialchars($row['quantity']) . "' min='1' style='width: 75px; height: 32px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: 700;' onchange='this.form.submit()'>
                                                 <div style='display:flex; align-items:center;'>
                                                     <span style='margin-right: 4px; font-weight:700;'>$</span>
-                                                    <input type='number' step='0.01' name='update_price' value='" . htmlspecialchars($row['unit_price'] ?? 0) . "' min='0' style='width: 70px; height: 32px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: 700;' onchange='this.form.submit()'>
+                                                    <input type='number' step='0.01' name='update_price' value='" . number_format($row['unit_price'] ?? 0, 2, '.', '') . "' min='0' style='width: 85px; height: 32px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: 700;' onchange='this.form.submit()'>
                                                 </div>
                                             </div>
                                             <button type='submit' style='margin-top: 6px; width: 100%; border: none; background: #e2e8f0; color: var(--text-main); border-radius: 6px; cursor: pointer; height: 26px; font-size: 0.75rem; font-weight: 800;'>Done</button>

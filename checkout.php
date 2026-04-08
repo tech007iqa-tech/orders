@@ -180,14 +180,14 @@ try {
                             <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()" onclick="event.stopPropagation()">
                         </td>
                         <td class="col-price" style="text-align: right;">
-                            <span class="print-only">$<?= number_format($price, 0) ?></span>
+                            <span class="print-only">$<?= number_format($price, 2) ?></span>
                             <div class="no-print price-input-wrapper">
                                 <span style="font-weight: 700;">$</span>
-                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= (int)$price ?>" step="1" min="0" class="price-input" oninput="recalculateTotals()" onclick="event.stopPropagation()">
+                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= number_format($price, 2, '.', '') ?>" step="0.01" min="0" class="price-input" oninput="recalculateTotals()" onclick="event.stopPropagation()">
                             </div>
                         </td>
                         <td class="col-total" style="text-align: right; font-weight: 700; color: var(--text-main); padding-right: 0;">
-                            $<span class="row-subtotal"><?= number_format($subtotal, 0) ?></span>
+                            $<span class="row-subtotal"><?= number_format($subtotal, 2) ?></span>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -199,7 +199,7 @@ try {
                     <tr class="row-total">
                         <td colspan="3" class="total-label" style="padding-left: 0;">Total Amount Due</td>
                         <td class="total-amount" style="text-align: right; color: var(--accent-color); padding-right: 0;">
-                            $<span id="grand-total-display"><?= number_format($grand_total, 0) ?></span>
+                            $<span id="grand-total-display"><?= number_format($grand_total, 2) ?></span>
                         </td>
                     </tr>
                 </tbody>

@@ -40,14 +40,26 @@ try {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
+    // CRM Migration
+    $cols = $conn->query("PRAGMA table_info(customers)")->fetchAll(PDO::FETCH_ASSOC);
+    $has_cb = false; $has_msg = false;
+    foreach($cols as $c) {
+        if ($c['name'] === 'callback_date') $has_cb = true;
+        if ($c['name'] === 'message_date') $has_msg = true;
+    }
+    if (!$has_cb) $conn->exec("ALTER TABLE customers ADD COLUMN callback_date TEXT DEFAULT ''");
+    if (!$has_msg) $conn->exec("ALTER TABLE customers ADD COLUMN message_date TEXT DEFAULT ''");
+
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'edit_customer') {
         $stmt = $conn->prepare("UPDATE customers SET
             company_name = ?, website = ?, contact_person = ?, address = ?,
-            email = ?, phone = ?, shipping_address = ?, internal_notes = ?
+            email = ?, phone = ?, shipping_address = ?, internal_notes = ?,
+            callback_date = ?, message_date = ?
             WHERE customer_id = ?");
         $stmt->execute([
             $_POST['company_name'], $_POST['website'], $_POST['contact_person'], $_POST['address'],
             $_POST['email'], $_POST['phone'], $_POST['shipping_address'], $_POST['internal_notes'],
+            $_POST['callback_date'] ?? '', $_POST['message_date'] ?? '',
             $_POST['customer_id']
         ]);
         header("Location: index.php");
@@ -111,7 +123,7 @@ try {
                             </div>
                         </div>
                         <div class='card-actions'>
-                            <div class='btn-view-cust' title='View Details'>👁</div>
+                            <a href=\"#customer-details\"><div class='btn-view-cust' title='View Details'>👁</div></a>
                         </div>
                       </div>";
             }
@@ -161,6 +173,17 @@ function renderDetailView(data) {
                 <button onclick='renderEditView(${JSON.stringify(data).replace(/'/g, "&apos;")})' class="btn-view-cust" title="Edit Account">✎</button>
             </div>
 
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                <div class="detail-item" style="margin:0;">
+                    <div class="detail-label" style="display: flex; align-items: center; gap: 5px;">📅 Next Callback</div>
+                    <div class="detail-value" style="font-weight: 700; color: var(--accent-color);">${data.callback_date ? escapeHTML(data.callback_date) : 'Not Set'}</div>
+                </div>
+                <div class="detail-item" style="margin:0;">
+                    <div class="detail-label" style="display: flex; align-items: center; gap: 5px;">✉️ Last Message Date</div>
+                    <div class="detail-value" style="font-weight: 700;">${data.message_date ? escapeHTML(data.message_date) : 'Not Set'}</div>
+                </div>
+            </div>
+
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="detail-item">
                     <div class="detail-label">Contact Person</div>
@@ -208,6 +231,11 @@ function renderDetailView(data) {
                 </div>
             </div>
 
+            <div class="detail-item" style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color);">
+                <div class="detail-label" style="display: flex; align-items: center; gap: 5px;">📝 CRM Notes</div>
+                <div class="detail-value" style="font-size: 0.85rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.5;">${data.internal_notes ? escapeHTML(data.internal_notes) : '<i style="opacity:0.5;">No notes recorded for this customer.</i>'}</div>
+            </div>
+
             <div style="padding-top: 10px; border-top: 1px dashed var(--border-color); margin-top: 20px;">
                 <a href="index.php?customer_id=${encodeURIComponent(data.customer_id)}&action=create_new_order" class="btn-main" style="text-decoration:none; display:flex; align-items:center; justify-content:center; padding: 16px; border-radius: 12px; background: var(--accent-color); color: white; font-weight: 800; text-align: center; gap: 8px; box-shadow: 0 10px 15px -3px rgba(140, 198, 63, 0.3);">
                     <span>+</span> Start New Fresh Order
@@ -253,6 +281,17 @@ function renderEditView(data) {
                 <div class="form-group">
                     <label>Phone</label>
                     <input type="text" name="phone" value="${escapeHTML(data.phone)}" style="height:38px; font-size:0.85rem;">
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:12px;">
+                <div class="form-group">
+                    <label>Next Callback</label>
+                    <input type="date" name="callback_date" value="${escapeHTML(data.callback_date)}" style="height:38px; font-size:0.85rem; padding-right:10px;">
+                </div>
+                <div class="form-group">
+                    <label>Last Message Date</label>
+                    <input type="date" name="message_date" value="${escapeHTML(data.message_date)}" style="height:38px; font-size:0.85rem; padding-right:10px;">
                 </div>
             </div>
 

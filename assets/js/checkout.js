@@ -90,17 +90,17 @@ function recalculateTotals() {
         const qty        = parseFloat(qtyInput.value) || 0;
         const priceInput = row.querySelector('.price-input');
         const price      = parseFloat(priceInput.value) || 0;
-        const subtotal   = Math.round(qty * price);
-        row.querySelector('.row-subtotal').innerText = subtotal.toLocaleString();
+        const subtotal   = qty * price;
+        row.querySelector('.row-subtotal').innerText = subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
         const spans = row.querySelectorAll('.print-only');
         if (spans.length >= 2) {
             spans[0].innerText = qty;
-            spans[1].innerText = '$' + price.toLocaleString();
+            spans[1].innerText = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         }
         grandTotal += subtotal;
     });
-    document.getElementById('grand-total-display').innerText = grandTotal.toLocaleString();
+    document.getElementById('grand-total-display').innerText = grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function copyEntry(btn) {
@@ -151,7 +151,7 @@ function openEditModal(index) {
     document.getElementById('modal-cpu').value     = item.cpu;
     document.getElementById('modal-desc').value    = item.description;
     document.getElementById('modal-qty').value     = item.quantity;
-    document.getElementById('modal-price').value   = Math.round(item.unit_price);
+    document.getElementById('modal-price').value   = parseFloat(item.unit_price).toFixed(2);
 }
 
 function closeEditModal() {
