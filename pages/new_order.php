@@ -139,6 +139,12 @@ unset($_SESSION['message']);
 
         <a href="index.php" class="builder-back-link">← Switch Batch / Account</a>
 
+        <div style="margin-bottom: 20px;">
+            <button type="button" onclick="openWarehouseModal()" style="width: 100%; height: 44px; border-radius: 12px; border: 1px solid var(--accent-color); background: #f0fdf4; color: #166534; font-weight: 800; cursor: pointer; transition: all 0.2s;">
+                🔍 Pick from Warehouse Stock
+            </button>
+        </div>
+
         <!-- Brand Selection Dropdown -->
         <div class="form-group">
             <label for="brand">Choose Brand*</label>
@@ -297,70 +303,29 @@ unset($_SESSION['message']);
     </section>
 </div>
 
-<script>
-function copyEntry(btn) {
-    const container = btn.closest('.col-desc');
-    const textNode = container.querySelector('.copyable-text');
-    const text = textNode.innerText.trim();
-    
-    const performCopy = (textToCopy) => {
-        if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(textToCopy);
-        } else {
-            const textArea = document.createElement("textarea");
-            textArea.value = textToCopy;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            textArea.style.top = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-            } catch (err) {}
-            document.body.removeChild(textArea);
-            return Promise.resolve();
-        }
-    };
+<!-- Warehouse Picker Modal -->
+<div id="wh-modal" class="modal-overlay no-print" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:1000; align-items:center; justify-content:center;" onclick="if(event.target===this) closeWarehouseModal()">
+    <div style="background:white; border-radius:24px; width:90%; max-width:800px; max-height:85vh; padding:30px; display:flex; flex-direction:column; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="font-weight:900;">🏬 Pick from Warehouse</h2>
+            <button type="button" onclick="closeWarehouseModal()" style="background:none; border:none; font-size:2rem; cursor:pointer;">&times;</button>
+        </div>
+        
+        <div style="margin-bottom:20px; display:flex; gap:10px;">
+            <input type="text" id="wh-modal-search" onkeyup="searchWarehouseItems()" placeholder="Search by Brand, Model, or Location..." style="flex:1; height:48px; border-radius:12px; border:1px solid #ddd; padding:0 20px; font-size:1rem;">
+            <select id="wh-modal-sector" onchange="searchWarehouseItems()" style="height:48px; border-radius:12px; border:1px solid #ddd; padding:0 15px; font-weight:700;">
+                <option value="Laptops">Laptops</option>
+                <option value="Gaming">Gaming</option>
+                <option value="Desktops">Desktops</option>
+                <option value="Electronics">Electronics</option>
+            </select>
+        </div>
 
-    performCopy(text).then(() => {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '✅';
-        btn.style.opacity = '1';
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.style.opacity = '0.3';
-        }, 1500);
-    });
-}
+        <div id="wh-results" style="flex:1; overflow-y:auto; display:grid; grid-template-columns:1fr 1fr; gap:15px; padding-right:10px;">
+            <!-- Results populated via JS -->
+            <div style="grid-column:1/-1; padding:40px; text-align:center; color:#94a3b8;">Type above to search stock...</div>
+        </div>
+    </div>
+</div>
 
-function toggleInlineEdit(btn) {
-    const row = btn.closest('tr');
-    const staticView = row.querySelector('.static-view');
-    const editView = row.querySelector('.edit-view');
-    
-    if (staticView.style.display === 'none') {
-        staticView.style.display = 'flex';
-        editView.style.display = 'none';
-        btn.style.opacity = '0.3';
-    } else {
-        staticView.style.display = 'none';
-        editView.style.display = 'block';
-        btn.style.opacity = '1';
-    }
-}
 
-function filterSummary() {
-    const filter = document.getElementById('summary-search').value.toLowerCase();
-    const rows = document.getElementsByClassName('summary-item-row');
-
-    for (let i = 0; i < rows.length; i++) {
-        const text = rows[i].innerText.toLowerCase();
-        if (text.includes(filter)) {
-            rows[i].style.display = "";
-        } else {
-            rows[i].style.display = "none";
-        }
-    }
-}
-</script>

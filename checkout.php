@@ -163,13 +163,13 @@ try {
                             $total_items += $qty;
                             $grand_total += $subtotal;
                     ?>
-                    <tr class="item-row" data-id="<?= $item['id'] ?>" onclick="openEditModal(<?= $index ?>)" title="Click to Edit Full Metadata" style="cursor: pointer;">
-                        <td class="col-desc" style="padding-left: 0;">
-                            <a href="#modal-brand"><div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                    <tr class="item-row" data-id="<?= $item['id'] ?>">
+                        <td class="col-desc" style="padding-left: 0; cursor: pointer;" onclick="openEditModal(<?= $index ?>)" title="Click to edit full metadata (CPU, Series, etc.)">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
                                 <div class="copyable-text" style="flex: 1;">
-                                    <div style="font-weight: 700;"><?= htmlspecialchars($item['brand'] . " " . $item['model']) ?></div>
-                                    <div style="font-size: 0.825rem; color: var(--text-secondary);"><?= htmlspecialchars($item['series']) ?> | <span style="color: var(--accent-color); font-weight:800;"><?= htmlspecialchars($item['cpu'] ?? '') ?></span> | <?= htmlspecialchars($item['description']) ?></div>
-                                </div></a>
+                                    <div class="item-brand-model" style="font-weight: 700;"><span class="item-brand"><?= htmlspecialchars($item['brand']) ?></span> <span class="item-model"><?= htmlspecialchars($item['model']) ?></span></div>
+                                    <div class="item-metadata" style="font-size: 0.825rem; color: var(--text-secondary);"><?= htmlspecialchars($item['series'] ?? '') ?> | <span style="color: var(--accent-color); font-weight:800;"><?= htmlspecialchars($item['cpu'] ?? '') ?></span> | <?= htmlspecialchars($item['description'] ?? '') ?></div>
+                                </div>
                                 <button type="button" class="btn-copy no-print" onclick="event.stopPropagation(); copyEntry(this)" title="Copy Description" style="background: none; border: none; cursor: pointer; padding: 4px; font-size: 0.9rem; opacity: 0.4; transition: opacity 0.2s; flex-shrink: 0;">
                                     📋
                                 </button>
@@ -177,13 +177,13 @@ try {
                         </td>
                         <td class="col-qty" style="text-align: center;">
                             <span class="print-only" style="font-weight: 700;"><?= (int)$qty ?></span>
-                            <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()" onclick="event.stopPropagation()">
+                            <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()" style="width: 70px; text-align: center; height: 38px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 700;">
                         </td>
                         <td class="col-price" style="text-align: right;">
                             <span class="print-only">$<?= number_format($price, 2) ?></span>
-                            <div class="no-print price-input-wrapper">
+                            <div class="no-print price-input-wrapper" style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
                                 <span style="font-weight: 700;">$</span>
-                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= number_format($price, 2, '.', '') ?>" step="0.01" min="0" class="price-input" oninput="recalculateTotals()" onclick="event.stopPropagation()">
+                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= number_format($price, 2, '.', '') ?>" step="0.01" min="0" class="price-input" oninput="recalculateTotals()" style="width: 90px; text-align: right; height: 38px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 700;">
                             </div>
                         </td>
                         <td class="col-total" style="text-align: right; font-weight: 700; color: var(--text-main); padding-right: 0;">
@@ -227,10 +227,15 @@ try {
 
         <script>
         // PHP-injected data — must stay inline so checkout.js can reference them
-        const rawItems    = <?= json_encode($items) ?>;
-        const customerName = "<?= addslashes($customer['company_name'] ?? 'Account') ?>";
-        const orderID      = "<?= addslashes($active_order_id) ?>";
-        const orderDate    = "<?= date('M d, Y') ?>";
+        var rawItems    = <?= json_encode($items, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        var customerName = <?= json_encode($customer['company_name'] ?? 'Account') ?>;
+        var orderID      = <?= json_encode($active_order_id) ?>;
+        var orderDate    = <?= json_encode(date('M d, Y')) ?>;
+
+        console.log("Manifest Sync Initiated.");
+        console.log("Items Count:", rawItems.length);
+        console.log("Customer:", customerName);
+        console.log("Order ID:", orderID);
         </script>
         <script src="assets/js/checkout.js"></script>
 
@@ -255,6 +260,7 @@ try {
             </div>
             
             <input type="hidden" id="modal-item-id">
+            <input type="hidden" id="modal-item-index">
             
             <div class="modal-grid">
                 <div class="form-group">
@@ -288,11 +294,11 @@ try {
             </div>
 
             <div style="margin-top: 30px; display: flex; gap: 15px;">
-                <button type="button" onclick="printLabel()" class="btn-main" title="Generate 2x1 Thermal Label" style="flex: 1; border: 2px solid var(--border-color); cursor:pointer; height: 54px; background: transparent; color: var(--text-main); border-radius: 14px; font-weight: 800;">
-                    🖨️ Print Label (.odt)
+                <button type="button" onclick="printLabel()" id="btn-modal-print" class="btn-main" title="Generate 2x1 Thermal Label" style="flex: 1; border: 2px solid var(--border-color); cursor:pointer; height: 54px; background: transparent; color: var(--text-main); border-radius: 14px; font-weight: 800;">
+                    🖨️ Print Label
                 </button>
-                <button type="button" onclick="saveItemChanges()" class="btn-main" style="flex: 1; border:none; cursor:pointer; height: 54px; background: var(--text-main); color: white; border-radius: 14px; font-weight: 800;">
-                    Complete Row Adjustments
+                <button type="button" onclick="saveItemChanges()" id="btn-modal-save" class="btn-main" style="flex: 1; border:none; cursor:pointer; height: 54px; background: var(--text-main); color: white; border-radius: 14px; font-weight: 800;">
+                    Complete Sync
                 </button>
             </div>
         </div>

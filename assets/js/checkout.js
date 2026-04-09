@@ -1,20 +1,42 @@
-// ============================================================
-// IQA Metal — Checkout Manifest JS
-// Data variables (rawItems, customerName, orderID, orderDate)
-// are injected inline by checkout.php before this file loads.
-// ============================================================
+/**
+ * IQA Metal — Checkout Manifest Logic
+ * Managed with modern ES6+ standards and safe type-like documentation.
+ */
 
+/**
+ * @typedef {Object} ManifestItem
+ * @property {number} id
+ * @property {string} brand
+ * @property {string} model
+ * @property {string} series
+ * @property {string} cpu
+ * @property {string} description
+ * @property {number} quantity
+ * @property {number} unit_price
+ */
+
+/* ============================================================
+   1. Manifest UI Interactivity
+   ============================================================ */
+
+/**
+ * Saves changes and opens the system print dialog
+ */
 async function handlePrintManifest() {
-    const form = document.getElementById('checkout-form');
+    const form = document.querySelector('#checkout-form');
+    if (!(form instanceof HTMLFormElement)) return;
+
     const formData = new FormData(form);
     formData.set('action', 'update_items');
     formData.set('finalize_status', 'true');
 
     const printBtn = document.querySelector('.btn-print-action');
+    if (!printBtn) return;
+    
     const originalText = printBtn.innerHTML;
 
     try {
-        printBtn.innerHTML = 'Saving...';
+        printBtn.innerHTML = 'Saving Manifest...';
         printBtn.disabled = true;
 
         const response = await fetch(window.location.href, {
@@ -23,105 +45,155 @@ async function handlePrintManifest() {
         });
 
         if (response.ok) {
-            printBtn.innerHTML = 'Preparing...';
+            printBtn.innerHTML = 'Preparing Print...';
             setTimeout(() => {
                 window.print();
                 printBtn.innerHTML = originalText;
                 printBtn.disabled = false;
             }, 400);
-        } else { throw new Error(); }
+        } else {
+            throw new Error('Network response was not ok');
+        }
     } catch (err) {
-        alert('Save failed. Try manually saving first.');
+        console.error("Print Save Failed", err);
+        alert('Save failed. Please try saving changes normally first.');
         printBtn.innerHTML = originalText;
         printBtn.disabled = false;
     }
 }
 
+/**
+ * Generates and downloads a B2B compliant CSV manifest
+ * Optimized to pull directly from the active verification table.
+ */
 function downloadCSV() {
-    // Header Template (Quoted to prevent splitting on spaces)
-    let csv = "\"IQA Metal B2B Purchase Form\",,,,,,,,\n\n";
-    csv += `\"Name\",\"${customerName}\",,,,,,,\n`;
-    csv += `\"Date\",\"${orderDate}\",,,,,,,\n`;
-    csv += `\"Order #\",\"${orderID}\",,,,,,,\n\n`;
+    const cust = window.customerName || 'Account';
+    const ord = window.orderID || 'ORD-000';
+    const date = window.orderDate || '';
+
+    // Header Template
+    let csv = `"IQA Metal B2B Purchase Form",,,,,,,,\n\n`;
+    csv += `"Name","${cust}",,,,,,,\n`;
+    csv += `"Date","${date}",,,,,,,\n`;
+    csv += `"Order #","${ord}",,,,,,,\n\n`;
 
     // Column Headers
-    csv += "\"Type\",\"Brand\",\"Model\",\"Series\",\"CPU / Gen\",\"Description\",\"Price\",\"QTY\",\"Total\"\n";
+    csv += `"Type","Brand","Model","Series","CPU / Gen","Description","Price","QTY","Total"\n`;
 
     let totalQty = 0;
     let grandTotal = 0;
 
-    rawItems.forEach(item => {
-        const row = document.querySelector(`input[name="quantities[${item.id}]"]`).closest('tr');
-        const liveQty = parseInt(row.querySelector('.qty-input').value) || 0;
-        const livePrice = parseFloat(row.querySelector('.price-input').value) || 0;
+    const rows = document.querySelectorAll('.item-row');
+    const sanitize = (val) => `"${(val || '').toString().trim().replace(/"/g, '""')}"`;
+
+    rows.forEach(row => {
+        // Pull metadata from the description cell
+        const brand = row.querySelector('.item-brand')?.innerText || '';
+        const model = row.querySelector('.item-model')?.innerText || '';
+        const metaText = row.querySelector('.copyable-text div:last-child')?.innerText || '';
+        
+        // Parse "Series | CPU | Description"
+        const metaParts = metaText.split('|').map(p => p.trim());
+        const series = metaParts[0] || '';
+        const cpu = metaParts[1] || '';
+        const desc = metaParts[2] || '';
+
+        // Pull values from inputs
+        const qtyIn = row.querySelector('.qty-input');
+        const priceIn = row.querySelector('.price-input');
+        
+        const liveQty = qtyIn ? parseInt(qtyIn.value) || 0 : 0;
+        const livePrice = priceIn ? parseFloat(priceIn.value) || 0 : 0;
         const rowTotal = liveQty * livePrice;
 
-        // Mandatory Quoting for all text fields
-        const type  = `"${(item.type        || '').replace(/"/g, '""')}"`;
-        const brand = `"${(item.brand       || '').replace(/"/g, '""')}"`;
-        const model = `"${(item.model       || '').replace(/"/g, '""')}"`;
-        const series= `"${(item.series      || '').replace(/"/g, '""')}"`;
-        const cpu   = `"${(item.cpu         || '').replace(/"/g, '""')}"`;
-        const desc  = `"${(item.description || '').replace(/"/g, '""')}"`;
+        // "Type" placeholder or guess based on Brand
+        const type = ""; 
 
-        csv += `${type},${brand},${model},${series},${cpu},${desc},${livePrice},${liveQty},${rowTotal.toFixed(2)}\n`;
-        totalQty  += liveQty;
+        csv += `${sanitize(type)},${sanitize(brand)},${sanitize(model)},${sanitize(series)},${sanitize(cpu)},${sanitize(desc)},${livePrice},${liveQty},${rowTotal.toFixed(2)}\n`;
+        
+        totalQty += liveQty;
         grandTotal += rowTotal;
     });
 
-    // Footer (Aligned to QTY and Total columns)
-    csv += `\n,,,,,,,,\"Total QTY\",\"${totalQty}\"\n`;
-    csv += `,,,,,,,,\"Total Amount\",\"$${grandTotal.toFixed(2)}\"\n`;
+    csv += `\n,,,,,,,,"Total QTY","${totalQty}"\n`;
+    csv += `,,,,,,,,"Total Amount","$${grandTotal.toFixed(2)}"\n`;
 
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const url  = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `IQA_B2B_Form_${orderID}.csv`);
+    link.href = url;
+    link.download = `IQA_B2B_Form_${ord}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
+/**
+ * Recalculates all manifest totals dynamically based on input changes
+ */
 function recalculateTotals() {
     let grandTotal = 0;
-    document.querySelectorAll('.item-row').forEach(row => {
-        const qtyInput   = row.querySelector('.qty-input');
-        const qty        = parseFloat(qtyInput.value) || 0;
-        const priceInput = row.querySelector('.price-input');
-        const price      = parseFloat(priceInput.value) || 0;
-        const subtotal   = qty * price;
-        row.querySelector('.row-subtotal').innerText = subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    const rows = document.querySelectorAll('.item-row');
+    
+    rows.forEach(row => {
+        const qtyIn = row.querySelector('.qty-input');
+        const priceIn = row.querySelector('.price-input');
+        const subDisplay = row.querySelector('.row-subtotal');
+        
+        const qty = qtyIn ? parseFloat(qtyIn.value) || 0 : 0;
+        const price = priceIn ? parseFloat(priceIn.value) || 0 : 0;
+        const subtotal = qty * price;
 
-        const spans = row.querySelectorAll('.print-only');
-        if (spans.length >= 2) {
-            spans[0].innerText = qty;
-            spans[1].innerText = '$' + price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (subDisplay) {
+            subDisplay.innerText = subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        const printSpans = row.querySelectorAll('.print-only');
+        if (printSpans.length >= 2) {
+            printSpans[0].innerText = qty.toString();
+            printSpans[1].innerText = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
         grandTotal += subtotal;
     });
-    document.getElementById('grand-total-display').innerText = grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        const grandDisplay = document.getElementById('grand-total-display');
+    if (grandDisplay) {
+        grandDisplay.innerText = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
 }
 
+/**
+ * Handle Auto-opening modal if anchor is present
+ */
+window.addEventListener('load', () => {
+    if (window.location.hash.includes('modal-brand')) {
+        const firstRow = document.querySelector('.item-row');
+        if (firstRow) openEditModal(0);
+    }
+});
+
+/**
+ * Copies item details to clipboard
+ * @param {HTMLElement} btn 
+ */
 function copyEntry(btn) {
     const container = btn.closest('.col-desc');
-    const textNode  = container.querySelector('.copyable-text');
-    const text      = textNode.innerText.trim();
+    const textNode = container ? container.querySelector('.copyable-text') : null;
+    if (!textNode) return;
 
-    // Robust copy — works on mobile/Safari (no HTTPS required fallback)
+    const text = textNode.innerText.trim();
+
     const performCopy = (textToCopy) => {
         if (navigator.clipboard && window.isSecureContext) {
             return navigator.clipboard.writeText(textToCopy);
         } else {
             const textArea = document.createElement("textarea");
             textArea.value = textToCopy;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            textArea.style.top  = "0";
+            Object.assign(textArea.style, { position: "fixed", left: "-9999px", top: "0" });
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            try { document.execCommand('copy'); } catch (err) {}
+            try { document.execCommand('copy'); } catch (e) {}
             document.body.removeChild(textArea);
             return Promise.resolve();
         }
@@ -138,69 +210,181 @@ function copyEntry(btn) {
     });
 }
 
-// --- Modal Logic ---
+/* ============================================================
+   2. Modal Management (AJAX)
+   ============================================================ */
+
+/**
+ * Opens the item metadata editor modal
+ * @param {number} index 
+ */
 function openEditModal(index) {
-    const item = rawItems[index];
-    if (!item) return;
+    // Robust check for injected data
+    const items = window.rawItems || (typeof rawItems !== 'undefined' ? rawItems : null);
+    const item = items ? items[index] : null;
 
-    document.getElementById('editModal').classList.add('active');
-    document.getElementById('modal-item-id').value = item.id;
-    document.getElementById('modal-brand').value   = item.brand;
-    document.getElementById('modal-model').value   = item.model;
-    document.getElementById('modal-series').value  = item.series;
-    document.getElementById('modal-cpu').value     = item.cpu;
-    document.getElementById('modal-desc').value    = item.description;
-    document.getElementById('modal-qty').value     = item.quantity;
-    document.getElementById('modal-price').value   = parseFloat(item.unit_price).toFixed(2);
-}
+    if (!item) {
+        console.error("openEditModal: Item not found at index", index);
+        return;
+    }
 
-function closeEditModal() {
-    document.getElementById('editModal').classList.remove('active');
-}
+    const modal = document.getElementById('editModal');
+    if (!modal) return;
 
-function saveItemChanges() {
-    const formData = new FormData();
-    formData.append('action',     'save_single_item');
-    formData.append('item_id',    document.getElementById('modal-item-id').value);
-    formData.append('brand',      document.getElementById('modal-brand').value);
-    formData.append('model',      document.getElementById('modal-model').value);
-    formData.append('series',     document.getElementById('modal-series').value);
-    formData.append('cpu',        document.getElementById('modal-cpu').value);
-    formData.append('description',document.getElementById('modal-desc').value);
-    formData.append('quantity',   document.getElementById('modal-qty').value);
-    formData.append('unit_price', document.getElementById('modal-price').value);
+    modal.classList.add('active');
+    
+    // Map data to modal fields
+    const fields = {
+        'modal-item-id': item.id,
+        'modal-item-index': index,
+        'modal-brand': item.brand,
+        'modal-model': item.model,
+        'modal-series': item.series,
+        'modal-cpu': item.cpu,
+        'modal-desc': item.description,
+        'modal-qty': item.quantity,
+        'modal-price': parseFloat(item.unit_price || 0).toFixed(2)
+    };
 
-    const saveBtn  = document.querySelector('.modal-box .btn-main');
-    const origText = saveBtn.innerText;
-    saveBtn.innerText  = 'Syncing...';
-    saveBtn.disabled   = true;
-
-    fetch(window.location.href, {
-        method: 'POST',
-        body: formData
-    }).then(res => res.json()).then(data => {
-        if (data.status === 'success') location.reload();
-        else alert('Sync failed. Try again.');
-    }).catch(err => {
-        saveBtn.innerText = origText;
-        saveBtn.disabled  = false;
-        alert('Connection Lost.');
+    Object.entries(fields).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+                // Ensure null/undefined doesn't crash .toString()
+                el.value = (val ?? '').toString();
+            }
+        }
     });
 }
 
-function printLabel() {
-    const form    = document.createElement('form');
-    form.method   = 'POST';
-    form.action   = 'generate_odt.php';
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    if (modal) modal.classList.remove('active');
+}
 
-    const fields = ['brand', 'model', 'series', 'cpu', 'desc'];
-    fields.forEach(f => {
-        const hiddenField  = document.createElement('input');
-        hiddenField.type   = 'hidden';
-        // map "desc" → "description" for the backend
-        hiddenField.name   = f === 'desc' ? 'description' : f;
-        hiddenField.value  = document.getElementById('modal-' + f).value;
-        form.appendChild(hiddenField);
+/**
+ * Asynchronously saves item changes from the modal
+ */
+async function saveItemChanges() {
+    const getVal = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    };
+
+    const parsePrice = (priceVal) => {
+        const p = parseFloat(priceVal);
+        return isNaN(p) ? 0 : p;
+    };
+
+    const formData = new FormData();
+    formData.append('action', 'save_single_item');
+    formData.append('item_id', getVal('modal-item-id'));
+    formData.append('brand', getVal('modal-brand'));
+    formData.append('model', getVal('modal-model'));
+    formData.append('series', getVal('modal-series'));
+    formData.append('cpu', getVal('modal-cpu'));
+    formData.append('description', getVal('modal-desc'));
+    formData.append('quantity', getVal('modal-qty'));
+    formData.append('unit_price', parsePrice(getVal('modal-price')));
+
+    const saveBtn = document.getElementById('btn-modal-save');
+    if (!saveBtn) return;
+    
+    const origText = saveBtn.innerText;
+
+    try {
+        saveBtn.innerText = 'Syncing...';
+        saveBtn.disabled = true;
+
+        const response = await fetch(window.location.href, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.status === 'success') {
+            // Live-Sync UI without full reload
+            const itemId = getVal('modal-item-id');
+            const idx = parseInt(getVal('modal-item-index'));
+            const brand = getVal('modal-brand');
+            const model = getVal('modal-model');
+            const series = getVal('modal-series');
+            const cpu = getVal('modal-cpu');
+            const desc = getVal('modal-desc');
+            const qty = getVal('modal-qty');
+            const price = parseFloat(getVal('modal-price')) || 0;
+
+            // 1. Update the JS data source
+            if (window.rawItems && window.rawItems[idx]) {
+                Object.assign(window.rawItems[idx], {
+                    brand, model, series, cpu, description: desc,
+                    quantity: parseInt(qty), unit_price: price
+                });
+            }
+
+            // 2. Update the DOM table row directly
+            const row = document.querySelector(`.item-row[data-id="${itemId}"]`);
+            if (row) {
+                const brandEl = row.querySelector('.item-brand');
+                if (brandEl) brandEl.innerText = brand;
+                
+                const modelEl = row.querySelector('.item-model');
+                if (modelEl) modelEl.innerText = model;
+
+                const metaEl = row.querySelector('.item-metadata');
+                if (metaEl) {
+                    metaEl.innerHTML = `${series} | <span style="color: var(--accent-color); font-weight:800;">${cpu}</span> | ${desc}`;
+                }
+
+                const qtyIn = row.querySelector('.qty-input');
+                if (qtyIn) qtyIn.value = qty;
+
+                const priceIn = row.querySelector('.price-input');
+                if (priceIn) priceIn.value = price.toFixed(2);
+            }
+
+            recalculateTotals();
+            closeEditModal();
+            
+            saveBtn.innerText = origText;
+            saveBtn.disabled = false;
+        } else {
+            throw new Error('Sync failed');
+        }
+    } catch (err) {
+        saveBtn.innerText = origText;
+        saveBtn.disabled = false;
+        alert('Sync failed. Please check your connection.');
+    }
+}
+
+/**
+ * Submits labels to the ODT generator service
+ */
+function printLabel() {
+    const getVal = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value : '';
+    };
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'generate_odt.php';
+
+    const fields = {
+        'brand': getVal('modal-brand'),
+        'model': getVal('modal-model'),
+        'series': getVal('modal-series'),
+        'cpu': getVal('modal-cpu'),
+        'description': getVal('modal-desc')
+    };
+
+    Object.entries(fields).forEach(([name, value]) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
     });
 
     document.body.appendChild(form);
@@ -208,9 +392,15 @@ function printLabel() {
     document.body.removeChild(form);
 }
 
+/**
+ * Client-side search for the manifest manifest rows
+ */
 function filterManifest() {
-    const filter = document.getElementById('manifest-search').value.toLowerCase();
-    const rows   = document.getElementsByClassName('item-row');
+    const searchIn = document.getElementById('manifest-search');
+    if (!searchIn) return;
+
+    const filter = searchIn.value.toLowerCase();
+    const rows = document.getElementsByClassName('item-row');
 
     for (let i = 0; i < rows.length; i++) {
         const text = rows[i].innerText.toLowerCase();

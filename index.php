@@ -41,6 +41,9 @@
         </nav>
 
         <nav class="breadcrumbs" style="display: flex; gap: 20px; align-items: center;">
+            <a href="index.php?view=warehouse" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'warehouse' ? 'active' : '' ?>" style="margin:0;">
+                🏬 Warehouse
+            </a>
             <a href="index.php?view=orders" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'orders' ? 'active' : '' ?>" style="margin:0;">
                 📦 All Orders
             </a>
@@ -48,7 +51,7 @@
         </nav>
     </div>
 
-    <div class="container <?= isset($_GET['customer_id']) || (isset($_GET['view']) && $_GET['view'] === 'orders') ? 'order-view' : '' ?>">
+    <div class="container <?= isset($_GET['customer_id']) || (isset($_GET['view']) && $_GET['view'] === 'orders') || (isset($_GET['view']) && $_GET['view'] === 'warehouse') ? 'order-view' : '' ?>">
         <?php
         // Order Creation Logic
         if (isset($_GET['action']) && $_GET['action'] === 'create_new_order' && isset($_GET['customer_id'])) {
@@ -73,6 +76,8 @@
             include 'pages/new_customer.php';
         } elseif (isset($_GET['view']) && $_GET['view'] === 'orders') {
             include 'pages/orders.php';
+        } elseif (isset($_GET['view']) && $_GET['view'] === 'warehouse') {
+            include 'pages/warehouse.php';
         } elseif (isset($_GET['view']) && $_GET['view'] === 'settings') {
             include 'pages/settings.php';
         } else {
@@ -81,6 +86,8 @@
         ?>
     </div>
     <!-- Load compiled JavaScript directly for performance/mobile compatibility -->
+    <!-- Load Global Data First -->
+    <script src="assets/js/inventory_data.js"></script>
     <script src="assets/js/new_order.js"></script>
 </body>
 

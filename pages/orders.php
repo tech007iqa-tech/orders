@@ -120,38 +120,4 @@ try {
     </div>
 </div>
 
-<script>
-function filterOrders() {
-    const input = document.getElementById('order-search');
-    const filter = input.value.toLowerCase();
-    const cards = document.getElementsByClassName('order-card');
-    let hasResults = false;
-
-    for (let i = 0; i < cards.length; i++) {
-        const searchBlob = cards[i].getAttribute('data-search');
-        if (searchBlob.includes(filter)) {
-            cards[i].style.display = "";
-            hasResults = true;
-        } else {
-            cards[i].style.display = "none";
-        }
-    }
-
-    // Handle empty state during search
-    const emptyState = document.querySelector('.orders-empty-state');
-    if (!hasResults) {
-        if (!emptyState) {
-            const grid = document.getElementById('orders-grid');
-            const msg = document.createElement('div');
-            msg.className = 'orders-empty-state';
-            msg.innerText = 'No batches found matching "' + input.value + '"';
-            grid.appendChild(msg);
-        } else {
-            emptyState.style.display = 'block';
-            emptyState.innerText = 'No batches found matching "' + input.value + '"';
-        }
-    } else if (emptyState) {
-        emptyState.style.display = 'none';
-    }
-}
-</script>
+<script src="assets/js/orders.js"></script>
