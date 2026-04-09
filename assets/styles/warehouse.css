@@ -65,17 +65,94 @@
     border: 1px solid #e2e8f0;
 }
 
-.inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+/* Spreadsheet Table Styling */
+.inventory-table-container {
+    background: white;
+    border-radius: 20px;
+    overflow-x: auto;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    margin-top: 10px;
 }
 
-.inventory-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse !important;
+    font-size: 0.85rem;
+    min-width: 900px;
+    margin: 0 !important;
+    border-spacing: 0 !important;
+}
+
+.inventory-table th {
+    background: #0f172a !important;
+    text-align: left;
+    padding: 16px 15px;
+    font-weight: 800;
+    color: white !important;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid var(--laptop-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.inventory-table td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    color: var(--text-main);
+}
+
+.inventory-table tr.inventory-card:hover {
+    background: #f1f5f9;
+    cursor: pointer;
+}
+
+.inventory-table .spec-label {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.inventory-table .spec-value {
+    font-weight: 700;
+}
+
+.stats-pill {
+    background: #f1f5f9;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.stats-pill strong {
+    color: var(--text-main);
+}
+
+.row-action-btn {
+    background: #f1f5f9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.row-action-btn:hover {
+    background: #e2e8f0;
+    transform: scale(1.1);
 }
 
 .spec-info {
@@ -224,15 +301,18 @@
 }
 
 .warehouse-layout {
-    display: grid;
-    grid-template-columns: 1fr 350px;
+    display: flex;
+    flex-direction: column;
     gap: 30px;
-    align-items: start;
 }
 
 .warehouse-sidebar {
-    position: sticky;
-    top: 20px;
+    width: 100%;
+    order: -1; /* Keep form at the top */
+}
+
+.inventory-feed {
+    width: 100%;
 }
 
 .search-container {

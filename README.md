@@ -7,11 +7,11 @@ A modern, responsive web application for managing hardware inventory and custome
 ## ✨ Key Features
 
 -   **B2B Manifest Generation**: Creates final, professional billing summaries with auto-calculated totals and unit prices.
--   **CSV Portable Exports**: Instant "IQA Metal B2B Purchase Form" export compatible with Excel and LibreOffice.
+-   **CSV Portable Exports**: Instant "IQA Metal B2B Purchase Form" export with dedicated columns for Brand and Model, compatible with Excel and LibreOffice.
 -   **ODT Thermal Label Printing**: Generate compliant 2"×1" `.odt` labels from the Edit Item modal — no external dependencies required.
 -   **Fulfillment Tracking**: A Global Batch Registry to track orders through lifecycle states (Active, Pending, Paid, Dispatched, Finalized).
 -   **Live Search Everywhere**: Flexible client-side search bars in the Order Builder Summary, Checkout Manifest, and Batch Registry.
--   **Interactive Checkout Modal**: Click any manifest row to open a premium glassmorphism Edit Item modal with AJAX save and Print Label support.
+-   **Interactive Checkout Modal**: Click any manifest row to open a premium glassmorphism Edit Item modal with AJAX **Live Sync** (no page reload) and Print Label support.
 -   **Inline Quick-Edit**: Pencil icon on the Order Summary allows direct Qty/Price edits with smart page-anchor scrolling on reload.
 -   **Technical CPU Tracking**: Specialized hardware categorization from 2nd Gen through 12th Gen for high-volume entry.
 -   **Two-Phase Workflow**: Clean separation between customer management and order entry.
@@ -96,7 +96,7 @@ A modern, responsive web application for managing hardware inventory and custome
 
 -   **Database**: The `.db` files are in `assets/db/`. Open with any SQLite browser for manual audit.
 -   **Styling**: All design tokens (colors, spacing, shadows) are CSS Variables in `:root` inside `style.css`.
--   **JavaScript**: Checkout logic is fully externalized to `assets/js/checkout.js`. PHP data is injected inline as `const` variables before the external script loads.
+-   **JavaScript**: Checkout logic is fully externalized to `assets/js/checkout.js`. PHP data is injected inline as `var` variables (ensuring `window` scope access) before the external script loads.
 -   **Label Printing**: `generate_odt.php` produces Flat OpenDocument XML. If labels don't open, ensure LibreOffice is set as the default `.odt` handler.
 
 ---

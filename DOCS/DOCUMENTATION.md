@@ -25,13 +25,13 @@ The final stage before manifest delivery.
 - **Live Manifest Search**: A flexible search bar below the "Final Batch Verification" header filters all item rows in real time.
 - **Interactive Row Editing**: Click any item row to open a premium glassmorphism **Edit Item** modal with animated slide-up/scale-in transitions.
   - Full metadata editing: Brand, Model, Series, CPU/Gen, Condition/Comments, Qty, Unit Price.
-  - **AJAX Save**: Changes are persisted to the SQLite database without a full page reload.
+  - **AJAX Live Sync**: Changes are persisted and immediately reflected in the main table UI without a page reload, preserving unsaved changes in other manifest rows.
   - **🖨️ Print Label (.odt)**: Generate a 2"×1" Thermal Label as a standards-compliant OpenDocument Text file directly from the modal.
 - **Adaptive Layout**: Tables transform into mobile-friendly cards on small screens to prevent horizontal scrolling.
 - **Live Recalculation**: Subtotals and grand totals update instantly as you adjust quantities or pricing.
 - **Export Formats**:
   - 🖨 **Print Manifest**: Professional PDF-ready layout with approval signature lines.
-  - 📊 **CSV Export**: Clean, Excel-ready data distribution.
+  - 📊 **CSV Export**: Clean, Excel-ready data distribution with separate columns for Brand and Model.
 
 ### 4. ODT Label Generation — `generate_odt.php`
 A standalone PHP label printer requiring zero external dependencies.
@@ -68,7 +68,7 @@ Administrative control panel for system-wide configuration.
 - **Clipboard Fallback**: Copy-to-clipboard uses `navigator.clipboard` with a hidden `<textarea>` fallback for non-HTTPS contexts (older Safari).
 
 ### JS Architecture
-- **PHP Data Injection (inline)**: `checkout.php` injects `rawItems`, `customerName`, `orderID`, and `orderDate` as `const` variables before loading the external script.
+- **PHP Data Injection (inline)**: `checkout.php` injects `rawItems`, `customerName`, `orderID`, and `orderDate` as `var` variables to ensure they are available on the `window` object for the external script.
 - **External Logic File**: All function definitions live in `assets/js/checkout.js` for clean separation of concerns and browser caching.
 
 ---

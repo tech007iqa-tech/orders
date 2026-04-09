@@ -8,6 +8,8 @@
     <title>Order Entry | IQA Metal</title>
     <link rel="stylesheet" href="assets/styles/style.css">
     <link rel="icon" type="image/png" href="assets/icon/smart-home-sensor-wifi-black-outline-25276_1024.png">
+    <!-- Load Global Data in Head for early availability -->
+    <script src="assets/js/inventory_data.js"></script>
 </head>
 
 <body>
@@ -86,9 +88,8 @@
         ?>
     </div>
     <!-- Load compiled JavaScript directly for performance/mobile compatibility -->
-    <!-- Load Global Data First -->
-    <script src="assets/js/inventory_data.js"></script>
     <script src="assets/js/new_order.js"></script>
+    <script src="assets/js/warehouse.js"></script>
 </body>
 
 </html>

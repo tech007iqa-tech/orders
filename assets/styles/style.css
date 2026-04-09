@@ -57,6 +57,7 @@ body {
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -77,14 +78,23 @@ a {
     box-shadow: var(--shadow-sm);
     padding: 32px;
     display: flex;
-    flex-direction: row; /* Sidebar | Main logic */
+    flex-direction: row;
+    /* Sidebar | Main logic */
     gap: 40px;
     animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.container.order-view {
+    flex-direction: column;
+    max-width: 1600px;
+    width: 95%;
+    gap: 20px;
+}
+
 .form-side {
     flex: 1;
-    min-width: 0; /* Fix flex overflow */
+    min-width: 0;
+    /* Fix flex overflow */
 }
 
 .summary-side {
@@ -97,6 +107,7 @@ a {
         max-width: 1550px;
         gap: 60px;
     }
+
     .summary-side {
         width: 450px;
     }
@@ -109,6 +120,7 @@ a {
         padding: 20px;
         gap: 20px;
     }
+
     .summary-side {
         width: 100%;
         border-left: none;
@@ -157,7 +169,8 @@ label {
     color: var(--text-main);
 }
 
-select, input {
+select,
+input {
     height: var(--btn-height);
     background-color: var(--bg-panel);
     border: 1px solid var(--border-color);
@@ -169,7 +182,8 @@ select, input {
     width: 100%;
 }
 
-select:focus, input:focus {
+select:focus,
+input:focus {
     outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 3px rgba(140, 198, 63, 0.1);
@@ -268,7 +282,7 @@ td {
     background: #ffffff;
     border: 1px solid #f1f5f9;
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 /* Rounded corners for rows */
@@ -467,7 +481,7 @@ tr:hover .btn-delete {
     background: white;
     border-color: var(--accent-color);
     color: var(--text-main);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .step-num {
@@ -506,6 +520,7 @@ tr:hover .btn-delete {
         max-width: 500px;
         padding: 24px;
     }
+
     .summary-side {
         border-left: none;
         border-top: 1px solid var(--border-color);

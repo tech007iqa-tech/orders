@@ -52,10 +52,10 @@ try {
             <h1>Global Batch Registry</h1>
             <p class="subtitle orders-subtitle">Review batches and manage fulfillment states across all accounts.</p>
         </div>
-        <div class="orders-tabs">
-            <a href="index.php?view=orders&type=active" class="orders-tab-link <?= $show_type === 'active' ? 'active' : 'inactive' ?>">Active Batches</a>
-            <a href="index.php?view=orders&type=completed" class="orders-tab-link <?= $show_type === 'completed' ? 'active' : 'inactive' ?>">Finalized History</a>
-        </div>
+            <div class="orders-tabs">
+                <a href="index.php?view=orders&type=active" class="orders-tab-link <?= $show_type === 'active' ? 'active' : 'inactive' ?>">Active Batches</a>
+                <a href="index.php?view=orders&type=completed" class="orders-tab-link <?= $show_type === 'completed' ? 'active' : 'inactive' ?>">Finalized History</a>
+            </div>
     </header>
 
     <!-- Live Search Input -->

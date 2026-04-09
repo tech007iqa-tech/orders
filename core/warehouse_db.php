@@ -32,9 +32,16 @@ try {
         specs_json TEXT,                    -- Flexible metadata based on sector
         quantity INTEGER DEFAULT 0,
         status TEXT DEFAULT 'stocked',      -- stocked, reserved, out, maintenance
+        last_updated_by TEXT,               -- Track who made the most recent change
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
+
+    // Migration for last_updated_by
+    $cols = $conn_wh->query("PRAGMA table_info(inventory)")->fetchAll(PDO::FETCH_ASSOC);
+    $has_updated_by = false;
+    foreach($cols as $c) if($c['name'] === 'last_updated_by') $has_updated_by = true;
+    if(!$has_updated_by) $conn_wh->exec("ALTER TABLE inventory ADD COLUMN last_updated_by TEXT");
 
     // Seed default sectors if empty
     $stmt = $conn_wh->query("SELECT COUNT(*) FROM sectors");

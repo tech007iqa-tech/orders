@@ -188,3 +188,68 @@ function resetWarehouseForm() {
     // Trigger UI cleanup
     if (typeof toggleGamingFields === 'function') toggleGamingFields();
 }
+
+/**
+ * Generates and downloads a CSV of the visible warehouse inventory with separated spec columns
+ */
+function downloadWarehouseCSV() {
+    const cards = document.querySelectorAll('.inventory-card');
+    
+    // Column Definitions based on the superset of supported specs
+    const headers = ["Location", "Brand", "Model", "Qty", "CPU", "GPU", "RAM", "Storage", "Battery", "Windows", "Series", "Gen", "Condition", "Notes"];
+    let csv = headers.map(h => `"${h}"`).join(",") + "\n";
+    
+    const sanitize = (val) => `"${(val || "").toString().trim().replace(/"/g, '""')}"`;
+    let count = 0;
+
+    cards.forEach(card => {
+        // Only export visible items (respects search filter)
+        if (card.style.display !== 'none') {
+            const specs = JSON.parse(card.getAttribute('data-specs') || '{}');
+            
+            const loc = card.querySelector('.location-tag')?.innerText || '';
+            const brand = card.getAttribute('data-brand') || '';
+            const model = card.getAttribute('data-model') || '';
+            const qtyRaw = card.querySelector('.spec-pill')?.innerText || 'Qty: 0';
+            const qty = qtyRaw.replace('Qty: ', '');
+            
+            // Map JSON keys to CSV columns (case-insensitive keys from JSON often)
+            const rowData = [
+                sanitize(loc),
+                sanitize(brand),
+                sanitize(model),
+                sanitize(qty),
+                sanitize(specs.cpu || ""),
+                sanitize(specs.gpu || ""),
+                sanitize(specs.ram || ""),
+                sanitize(specs.storage || ""),
+                sanitize(specs.battery || ""),
+                sanitize(specs.windows || ""),
+                sanitize(specs.series || ""),
+                sanitize(specs.gen || ""),
+                sanitize(specs.condition || specs.Condition || ""),
+                sanitize(specs.notes || specs.Notes || "")
+            ];
+            
+            csv += rowData.join(",") + "\n";
+            count++;
+        }
+    });
+
+    if (count === 0) {
+        alert("No visible items to export.");
+        return;
+    }
+
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const sector = (window.activeSector || "Warehouse").replace(/\s+/g, '_');
+    
+    link.href = url;
+    link.download = `IQA_Inventory_${sector}_${dateStamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}

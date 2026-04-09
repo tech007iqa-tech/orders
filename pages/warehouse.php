@@ -6,8 +6,18 @@ $current_user = $_SESSION['username'];
 $selected_sector = $_GET['sector'] ?? 'Laptops';
 $selected_loc = $_GET['loc'] ?? null;
 
-// Handle Add/Edit Item
+// Handle Add/Edit/Delete Item
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'delete_inventory' && isset($_POST['item_id'])) {
+        $stmt = $conn_wh->prepare("DELETE FROM inventory WHERE id=?");
+        $stmt->execute([$_POST['item_id']]);
+        
+        $sector = $_GET['sector'] ?? $_POST['sector'] ?? 'Laptops';
+        $loc = $_GET['loc'] ?? $_POST['location_code'] ?? '';
+        header("Location: index.php?view=warehouse&sector=" . urlencode($sector) . "&loc=" . urlencode($loc) . "&msg=deleted#wh-form-title");
+        exit();
+    }
+
     if ($_POST['action'] === 'add_inventory' || $_POST['action'] === 'edit_inventory') {
         $brand = $_POST['brand'];
         $model = $_POST['model'];
@@ -43,14 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $specs_json = json_encode($specs);
 
         if ($_POST['action'] === 'edit_inventory' && isset($_POST['item_id'])) {
-            $stmt = $conn_wh->prepare("UPDATE inventory SET brand=?, model=?, specs_json=?, quantity=? WHERE id=?");
-            $stmt->execute([$brand, $model, $specs_json, $qty, $_POST['item_id']]);
+            $stmt = $conn_wh->prepare("UPDATE inventory SET brand=?, model=?, specs_json=?, quantity=?, last_updated_by=?, updated_at=CURRENT_TIMESTAMP WHERE id=?");
+            $stmt->execute([$brand, $model, $specs_json, $qty, $current_user, $_POST['item_id']]);
         } else {
             $stmt = $conn_wh->prepare("INSERT INTO inventory (user_owner, sector, location_code, brand, model, specs_json, quantity) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$current_user, $sector, $loc, $brand, $model, $specs_json, $qty]);
         }
-        
-        header("Location: index.php?view=warehouse&sector=" . urlencode($sector) . "&loc=" . urlencode($loc));
+        $msg = ($_POST['action'] === 'edit_inventory') ? 'updated' : 'added';
+        header("Location: index.php?view=warehouse&sector=" . urlencode($sector) . "&loc=" . urlencode($loc) . "&msg=" . $msg . "#wh-form-title");
         exit();
     }
 }
@@ -158,42 +168,129 @@ if ($selected_loc) {
         
         <!-- Inventory List -->
         <section class="inventory-feed">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 style="font-size: 1.25rem; font-weight: 800;"><?= htmlspecialchars($selected_sector) ?> Inventory</h2>
-                <div class="search-container">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h2 style="font-size: 1.25rem; font-weight: 800; line-height: 1;"><?= htmlspecialchars($selected_sector) ?> Inventory</h2>
+                    <?php 
+                        $total_qty = 0;
+                        foreach($items as $it) $total_qty += (int)($it['quantity'] ?? 0);
+                    ?>
+                    <div style="margin-top: 5px; color: #64748b; font-size: 0.85rem; font-weight: 600;">
+                        Total Qty: <span style="color: var(--text-main); font-weight: 800;"><?= number_format($total_qty) ?> Units</span>
+                    </div>
+                </div>
+                <div class="search-container" style="display: flex; gap: 10px; flex: 1; min-width: 300px;">
                     <input type="text" id="wh-search" placeholder="Search items..." onkeyup="filterWarehouse()" class="search-input">
+                    <button type="button" onclick="downloadWarehouseCSV()" class="btn-edit-item" style="background: #166534; color: white; border-radius: 8px; padding: 0 15px; height: 38px; display: flex; align-items: center; justify-content: center; opacity: 1; font-weight: 800; font-size: 0.8rem; border: none; cursor: pointer; white-space: nowrap;">
+                        📊 Export CSV
+                    </button>
                 </div>
             </div>
 
-            <div class="inventory-grid" id="inventory-list">
-                <?php if (empty($items)): ?>
-                    <div style="grid-column: 1/-1; padding: 60px; text-align: center; background: white; border-radius: 20px; border: 2px dashed #eee;">
-                        <p style="color: #94a3b8; font-weight: 600;">No items found in this sector.</p>
-                    </div>
-                <?php else: ?>
-                    <?php foreach ($items as $item): 
-                        $specs = json_decode($item['specs_json'], true) ?: [];
-                    ?>
-                        <div class="inventory-card" 
-                             data-sector-theme="<?= htmlspecialchars($item['sector']) ?>"
-                             data-search="<?= htmlspecialchars(strtolower($item['brand'] . ' ' . $item['model'] . ' ' . $item['location_code'])) ?>">
-                            <span class="status-badge status-<?= $item['status'] ?>"><?= $item['status'] ?></span>
-                            <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <div class="location-tag"><?= htmlspecialchars($item['location_code']) ?></div>
-                                <button type="button" class="btn-edit-item" onclick='editWarehouseItem(<?= json_encode($item) ?>)' style="background:none; border:none; cursor:pointer; font-size:1.1rem; opacity:0.6 hover:opacity:1;">📝</button>
-                            </div>
-                            <h3 style="margin: 10px 0 5px 0; font-weight: 800;"><?= htmlspecialchars($item['brand'] . ' ' . $item['model']) ?></h3>
-                            <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px;">Added by @<?= htmlspecialchars($item['user_owner']) ?></div>
-                            
-                            <div class="spec-info">
-                                <span class="spec-pill" style="background: var(--bg-main); font-weight: 800; color: var(--text-main);">Qty: <?= (int)$item['quantity'] ?></span>
-                                <?php foreach ($specs as $key => $val): ?>
-                                    <span class="spec-pill"><?= strtoupper($key) ?>: <?= htmlspecialchars($val) ?></span>
-                                <?php endforeach; ?>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+            <div class="inventory-table-container" style="border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden; margin-top: 20px;">
+                <table class="inventory-table" style="width: 100%; border-collapse: collapse; margin: 0 !important;">
+                    <thead style="background: #0f172a !important; color: white !important; display: table-header-group !important;">
+                        <tr>
+                            <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6; width: 80px;">Type</th>
+                            <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6; width: 150px;">Make/Model</th>
+                            <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6; width: 60px;">QTY</th>
+                            <?php if ($selected_sector === 'Laptops'): ?>
+                                <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6;">CPU</th>
+                                <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6;">Ram/Storage</th>
+                                <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6;">Series</th>
+                            <?php elseif ($selected_sector === 'Gaming'): ?>
+                                <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6;">Category</th>
+                                <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6;">CPU / GPU</th>
+                                <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6;">RAM / Storage</th>
+                            <?php endif; ?>
+                            <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6;">Notes</th>
+                            <th style="padding: 18px 15px; text-align: left; font-size: 0.75rem; text-transform: uppercase; color: white !important; border-bottom: 3px solid #3b82f6; width: 120px;">Staff Log</th>
+                            <th style="padding: 18px 15px; border-bottom: 3px solid #3b82f6; width: 50px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-list">
+                        <?php if (empty($items)): ?>
+                            <tr>
+                                <td colspan="10" style="padding: 60px; text-align: center; color: #94a3b8; font-weight: 600;">
+                                    No items found in this sector.
+                                </td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($items as $item): 
+                                $specs = json_decode($item['specs_json'], true) ?: [];
+                                $created_date = date('m/d/y', strtotime($item['created_at']));
+                                $updated_date = date('m/d/y', strtotime($item['updated_at']));
+                            ?>
+                                <tr class="inventory-card" 
+                                     data-sector-theme="<?= htmlspecialchars($item['sector']) ?>"
+                                     data-brand="<?= htmlspecialchars($item['brand']) ?>"
+                                     data-model="<?= htmlspecialchars($item['model']) ?>"
+                                     data-specs='<?= htmlspecialchars($item['specs_json'], ENT_QUOTES) ?>'
+                                     data-search="<?= htmlspecialchars(strtolower($item['brand'] . ' ' . $item['model'] . ' ' . $item['location_code'])) ?>">
+                                    
+                                    <td><span class="location-tag"><?= htmlspecialchars($item['location_code']) ?></span></td>
+                                    
+                                    <td>
+                                        <div style="font-weight: 800;"><?= htmlspecialchars($item['brand']) ?></div>
+                                        <div style="font-size: 0.75rem; color: #64748b;"><?= htmlspecialchars($item['model']) ?></div>
+                                    </td>
+
+                                    <td><span class="spec-pill" style="background: var(--bg-main); font-weight: 800; color: var(--text-main);"><?= (int)$item['quantity'] ?></span></td>
+
+                                    <?php if ($selected_sector === 'Laptops'): ?>
+                                        <td>
+                                            <div class="spec-value"><?= htmlspecialchars($specs['cpu'] ?? '-') ?></div>
+                                        </td>
+                                        <td>
+                                            <div class="spec-value"><?= htmlspecialchars(($specs['ram'] ?? '-') . ' / ' . ($specs['storage'] ?? '-')) ?></div>
+                                        </td>
+                                        <td>
+                                            <div class="spec-value"><?= htmlspecialchars(($specs['series'] ?? '-') . ' (' . ($specs['gen'] ?? '-') . ')') ?></div>
+                                        </td>
+                                    <?php elseif ($selected_sector === 'Gaming'): ?>
+                                        <td><div class="spec-value"><?= htmlspecialchars($specs['category'] ?? '-') ?></div></td>
+                                        <td><div class="spec-value"><?= htmlspecialchars(($specs['cpu'] ?? '-') . ' / ' . ($specs['gpu'] ?? '-')) ?></div></td>
+                                        <td><div class="spec-value"><?= htmlspecialchars(($specs['ram'] ?? '-') . ' / ' . ($specs['storage'] ?? '-')) ?></div></td>
+                                    <?php endif; ?>
+
+                                    <td>
+                                        <div style="display:flex; gap:5px; align-items:center;">
+                                            <span class="status-badge status-<?= $item['status'] ?>" style="font-size: 0.6rem; padding: 2px 6px;"><?= $item['status'] ?></span>
+                                            <span style="font-size:0.75rem; color:#64748b;"><?= htmlspecialchars($specs['condition'] ?? 'Used') ?></span>
+                                        </div>
+                                        <div style="font-size: 0.75rem; color: #64748b;"><?= htmlspecialchars($specs['notes'] ?? '') ?></div>
+                                    </td>
+
+                                    <td>
+                                        <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-main);">
+                                            👤 <?= htmlspecialchars($item['user_owner']) ?>
+                                            <div style="font-size: 0.65rem; font-weight: 400; color: #94a3b8;">Created <?= $created_date ?></div>
+                                        </div>
+                                        <?php if ($item['last_updated_by']): ?>
+                                            <div style="margin-top: 5px; font-size: 0.7rem; color: #3b82f6; font-weight: 600;">
+                                                ✏️ <?= htmlspecialchars($item['last_updated_by']) ?>
+                                                <div style="font-size: 0.65rem; font-weight: 400; color: #94a3b8;">Edited <?= $updated_date ?></div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <td>
+                                        <div style="display: flex; gap: 5px;">
+                                            <button type="button" class="row-action-btn" onclick='editWarehouseItem(<?= json_encode($item) ?>)' title="Edit Entry">📝</button>
+                                            <form method="POST" action="" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item? This action cannot be undone.');">
+                                                <input type="hidden" name="action" value="delete_inventory">
+                                                <input type="hidden" name="item_id" value="<?= (int)$item['id'] ?>">
+                                                <input type="hidden" name="sector" value="<?= htmlspecialchars($selected_sector) ?>">
+                                                <input type="hidden" name="location_code" value="<?= htmlspecialchars($selected_loc) ?>">
+                                                <button type="submit" class="row-action-btn" style="color: #ef4444;" title="Delete Entry">🗑️</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </section>
 
@@ -201,6 +298,7 @@ if ($selected_loc) {
         <?php if ($selected_loc !== 'GLOBAL'): ?>
         <aside class="warehouse-sidebar">
             <div style="background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 20px;">
+                
                 <h3 id="wh-form-title" style="font-weight: 800; margin-bottom: 20px;">📥 Register Stock</h3>
                 <form method="POST" action="" id="wh-main-form">
                     <input type="hidden" name="action" id="wh-form-action" value="add_inventory">
@@ -222,8 +320,20 @@ if ($selected_loc) {
                             <label>Model</label>
                             <input type="text" name="model" list="model-options" id="wh-model" placeholder="Latitude" required style="width:100%; height:42px; border-radius:10px; border:1px solid #ddd; padding: 0 12px;">
                             <datalist id="model-options"></datalist>
-                        </div>
+                        </div></div>
+                        <?php if (isset($_GET['msg'])): ?>
+                    <div style="background: #dcfce7; color: #15803d; padding: 12px 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid #bef264; display: flex; align-items: center; gap: 10px; animation: slideDown 0.3s ease;">
+                        <span>✅</span>
+                        <span>
+                            <?php 
+                                if($_GET['msg'] === 'added') echo "Stock registered successfully!";
+                                elseif($_GET['msg'] === 'updated') echo "Entry updated successfully!";
+                                elseif($_GET['msg'] === 'deleted') echo "Entry removed from stock.";
+                            ?>
+                        </span>
                     </div>
+                <?php endif; ?>
+                    
 
                     <!-- Sector Specific Fields -->
                     <div id="sector-specific-fields" style="border-top: 1px dashed #eee; padding-top: 15px; margin-bottom: 15px;">
@@ -261,11 +371,11 @@ if ($selected_loc) {
                             <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                                 <div class="form-group" style="flex: 1;">
                                     <label>Model Number</label>
-                                    <input type="text" name="series" placeholder="E7450" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
+                                    <input type="text" name="series" required placeholder="E7450" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                                 </div>
                                 <div class="form-group" style="flex: 1;">
                                     <label>Generation</label>
-                                    <input type="text" name="gen" placeholder="11th Gen" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
+                                    <input type="text" name="gen" required placeholder="11th Gen" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                                 </div>
                             </div>
                         <?php elseif ($selected_sector === 'Gaming'): ?>
@@ -324,9 +434,9 @@ if ($selected_loc) {
                         <div class="form-group" style="flex: 1;">
                             <label>Condition</label>
                             <select name="condition" style="width:100%; height:42px; border-radius:10px; border:1px solid #ddd; padding: 0 12px; font-weight:700;">
-                                <option value="Used">A</option>
-                                <option value="New">B</option>
-                                <option value="Refurbished">C</option>
+                                <option value="A Grade">A Grade</option>
+                                <option value="B Grade">B Grade</option>
+                                <option value="C Grade">C Grade</option>
                             </select>
                         </div>
                         <div class="form-group" style="flex: 1;">
@@ -359,7 +469,7 @@ if ($selected_loc) {
     <?php endif; ?>
 </div>
 
-<script src="assets/js/warehouse.js"></script>
+<!-- warehouse.js is now loaded globally in index.php -->
 <script>
     // Ensure gaming fields are correctly toggled on load if Gaming is selected
     if (typeof toggleGamingFields === 'function') toggleGamingFields();

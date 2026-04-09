@@ -298,7 +298,7 @@ try {
                     🖨️ Print Label
                 </button>
                 <button type="button" onclick="saveItemChanges()" id="btn-modal-save" class="btn-main" style="flex: 1; border:none; cursor:pointer; height: 54px; background: var(--text-main); color: white; border-radius: 14px; font-weight: 800;">
-                    Complete Sync
+                    Update
                 </button>
             </div>
         </div>
