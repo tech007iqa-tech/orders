@@ -152,17 +152,17 @@ try {
         <form method="POST">
             <input type="hidden" name="action" value="change_password">
             <div class="form-group" style="margin-bottom: 20px;">
-                <label>Current Password</label>
-                <input type="password" name="old_password" placeholder="••••••••" required>
+                <label for="old_password">Current Password</label>
+                <input type="password" id="old_password" name="old_password" placeholder="••••••••" required>
             </div>
             <div style="border-top: 1px dashed var(--border-color); padding-top: 20px; margin-top: 20px;">
                 <div class="form-group" style="margin-bottom: 20px;">
-                    <label>New Password</label>
-                    <input type="password" name="new_password" placeholder="Min 3 characters" required>
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" placeholder="Min 3 characters" required>
                 </div>
                 <div class="form-group" style="margin-bottom: 30px;">
-                    <label>Confirm New Password</label>
-                    <input type="password" name="confirm_password" placeholder="Confirm new password" required>
+                    <label for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" required>
                 </div>
             </div>
             <button type="submit" class="btn-main" style="width: 100%; padding: 16px; border-radius: 12px; background: var(--text-main); color: white; border: none; font-weight: 800; cursor: pointer;">
@@ -191,8 +191,8 @@ try {
         <form method="POST">
             <input type="hidden" name="action" value="update_signature">
             <div class="form-group" style="margin-bottom: 20px;">
-                <label>Signature / Approved By Name</label>
-                <input type="text" name="display_name" value="<?= htmlspecialchars($current_sig) ?>" placeholder="e.g. John Smith — Operations Manager" required>
+                <label for="display_name">Signature / Approved By Name</label>
+                <input type="text" id="display_name" name="display_name" value="<?= htmlspecialchars($current_sig) ?>" placeholder="e.g. John Smith — Operations Manager" required>
             </div>
             <button type="submit" class="btn-main" style="width: 100%; padding: 16px; border-radius: 12px; background: var(--accent-color); color: white; border: none; font-weight: 800; cursor: pointer;">
                 ✍️ Save Signature
@@ -211,12 +211,12 @@ try {
         <form method="POST" style="background: #f8fafc; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
             <input type="hidden" name="action" value="add_user">
             <div class="form-group" style="margin-bottom: 12px;">
-                <label>New Username</label>
-                <input type="text" name="new_username" placeholder="e.g. omar_sales" required>
+                <label for="new_username">New Username</label>
+                <input type="text" id="new_username" name="new_username" placeholder="e.g. omar_sales" required>
             </div>
             <div class="form-group" style="margin-bottom: 18px;">
-                <label>Assign Password</label>
-                <input type="password" name="new_password" placeholder="Min 3 characters" required>
+                <label for="staff_password">Assign Password</label>
+                <input type="password" id="staff_password" name="new_password" placeholder="Min 3 characters" required>
             </div>
             <button type="submit" class="btn-main" style="width: 100%; height: 44px; border-radius: 10px; background: var(--accent-color); color: white; border: none; font-weight: 800; cursor: pointer;">
                 ⊕ Add New Staff Member

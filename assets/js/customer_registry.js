@@ -28,7 +28,7 @@
 
 /**
  * Displays customer details in the sidebar
- * @param {HTMLElement} el 
+ * @param {HTMLElement} el
  */
 function showDetails(el) {
     const cards = document.getElementsByClassName('cust-card');
@@ -36,10 +36,10 @@ function showDetails(el) {
         c.classList.remove('active');
     }
     el.classList.add('active');
-    
+
     const rawData = el.getAttribute('data-customer');
     if (!rawData) return;
-    
+
     try {
         const data = JSON.parse(rawData);
         renderDetailView(data);
@@ -50,7 +50,7 @@ function showDetails(el) {
 
 /**
  * Escapes HTML to prevent XSS
- * @param {string|null|undefined} str 
+ * @param {string|null|undefined} str
  * @returns {string}
  */
 const escapeHTML = (str) => {
@@ -66,7 +66,7 @@ const escapeHTML = (str) => {
 
 /**
  * Renders the detail view in the sidebar
- * @param {Customer} data 
+ * @param {Customer} data
  */
 function renderDetailView(data) {
     const side = document.getElementById('side-details');
@@ -154,7 +154,7 @@ function renderDetailView(data) {
 
 /**
  * Intermediary to avoid nested inline JSON issues
- * @param {Customer} data 
+ * @param {Customer} data
  */
 function handleEditClick(data) {
     renderEditView(data);
@@ -162,7 +162,7 @@ function handleEditClick(data) {
 
 /**
  * Renders the edit view in the sidebar
- * @param {Customer} data 
+ * @param {Customer} data
  */
 function renderEditView(data) {
     const side = document.getElementById('side-details');
@@ -179,56 +179,56 @@ function renderEditView(data) {
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label>Company Name</label>
-                <input type="text" name="company_name" value="${escapeHTML(data.company_name)}" style="height:38px; font-size:0.85rem;" required>
+                <label for="edit-company-name">Company Name</label>
+                <input type="text" id="edit-company-name" name="company_name" value="${escapeHTML(data.company_name)}" style="height:38px; font-size:0.85rem;" required>
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:12px;">
                 <div class="form-group">
-                    <label>Contact Person</label>
-                    <input type="text" name="contact_person" value="${escapeHTML(data.contact_person)}" style="height:38px; font-size:0.85rem;">
+                    <label for="edit-contact">Contact Person</label>
+                    <input type="text" id="edit-contact" name="contact_person" value="${escapeHTML(data.contact_person)}" style="height:38px; font-size:0.85rem;">
                 </div>
                 <div class="form-group">
-                    <label>Website</label>
-                    <input type="text" name="website" value="${escapeHTML(data.website)}" style="height:38px; font-size:0.85rem;">
-                </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:12px;">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" name="email" value="${escapeHTML(data.email)}" style="height:38px; font-size:0.85rem;">
-                </div>
-                <div class="form-group">
-                    <label>Phone</label>
-                    <input type="text" name="phone" value="${escapeHTML(data.phone)}" style="height:38px; font-size:0.85rem;">
+                    <label for="edit-website">Website</label>
+                    <input type="text" id="edit-website" name="website" value="${escapeHTML(data.website)}" style="height:38px; font-size:0.85rem;">
                 </div>
             </div>
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:12px;">
                 <div class="form-group">
-                    <label>Next Callback</label>
-                    <input type="date" name="callback_date" value="${escapeHTML(data.callback_date)}" style="height:38px; font-size:0.85rem; padding-right:10px;">
+                    <label for="edit-email">Email</label>
+                    <input type="email" id="edit-email" name="email" value="${escapeHTML(data.email)}" style="height:38px; font-size:0.85rem;">
                 </div>
                 <div class="form-group">
-                    <label>Last Message Date</label>
-                    <input type="date" name="message_date" value="${escapeHTML(data.message_date)}" style="height:38px; font-size:0.85rem; padding-right:10px;">
+                    <label for="edit-phone">Phone</label>
+                    <input type="text" id="edit-phone" name="phone" value="${escapeHTML(data.phone)}" style="height:38px; font-size:0.85rem;">
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom:12px;">
+                <div class="form-group">
+                    <label for="edit-callback">Next Callback</label>
+                    <input type="date" id="edit-callback" name="callback_date" value="${escapeHTML(data.callback_date)}" style="height:38px; font-size:0.85rem; padding-right:10px;">
+                </div>
+                <div class="form-group">
+                    <label for="edit-msg-date">Last Message Date</label>
+                    <input type="date" id="edit-msg-date" name="message_date" value="${escapeHTML(data.message_date)}" style="height:38px; font-size:0.85rem; padding-right:10px;">
                 </div>
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label>Business Address</label>
-                <input type="text" name="address" value="${escapeHTML(data.address)}" style="height:38px; font-size:0.85rem;">
+                <label for="edit-address">Business Address</label>
+                <input type="text" id="edit-address" name="address" value="${escapeHTML(data.address)}" style="height:38px; font-size:0.85rem;">
             </div>
 
             <div class="form-group" style="margin-bottom:12px;">
-                <label>Shipping Address</label>
-                <input type="text" name="shipping_address" value="${escapeHTML(data.shipping_address)}" style="height:38px; font-size:0.85rem;">
+                <label for="edit-ship-addr">Shipping Address</label>
+                <input type="text" id="edit-ship-addr" name="shipping_address" value="${escapeHTML(data.shipping_address)}" style="height:38px; font-size:0.85rem;">
             </div>
 
             <div class="form-group" style="margin-bottom:20px;">
-                <label>Internal Notes</label>
-                <textarea name="internal_notes" class="detail-notes" style="width:100%; min-height:80px;">${escapeHTML(data.internal_notes)}</textarea>
+                <label for="edit-notes">Internal Notes</label>
+                <textarea id="edit-notes" name="internal_notes" class="detail-notes" style="width:100%; min-height:80px;">${escapeHTML(data.internal_notes)}</textarea>
             </div>
 
             <button type="submit" class="btn-main" style="width:100%; padding:14px; border-radius:12px; background:var(--text-main); color:white; font-weight:800; border:none; cursor:pointer;">💾 Save Account Changes</button>
@@ -238,7 +238,7 @@ function renderEditView(data) {
 
 /**
  * Handles cancelling the edit view
- * @param {Customer} data 
+ * @param {Customer} data
  */
 function handleCancelEdit(data) {
     renderDetailView(data);
@@ -250,7 +250,7 @@ function handleCancelEdit(data) {
 function filterCustomers() {
     const input = document.getElementById('cust-search');
     if (!input) return;
-    
+
     const filter = input.value.toLowerCase();
     const cards = document.getElementsByClassName('cust-card');
 

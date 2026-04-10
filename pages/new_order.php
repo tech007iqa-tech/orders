@@ -43,7 +43,7 @@ try {
     foreach($columns as $col) {
         if ($col['name'] === 'order_id') $has_order_id = true;
     }
-    
+
     if (!$has_order_id) {
         $conn->exec("ALTER TABLE items ADD COLUMN order_id TEXT NOT NULL DEFAULT 'ORD-DEFAULT'");
     }
@@ -85,18 +85,18 @@ try {
             $customer_id = $_POST['customer_id'] ?? 'Anonymous';
 
             $stmt = $conn->prepare("INSERT INTO items (order_id, customer_id, brand, model, series, cpu, description, quantity, unit_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            
+
             if ($stmt->execute([$order_num, $customer_id, $brand, $models, $series, $cpu, $description, $qty, $price])) {
                 $_SESSION['message'] = "<div class='alert success'>Item added to batch <strong>{$order_num}</strong>!</div>";
             } else {
                 $_SESSION['message'] = "<div class='alert error'>Error adding item.</div>";
             }
         }
-        
+
         // PRG Pattern
         $cust_param = urlencode($_POST['customer_id'] ?? $current_customer);
         $order_param = urlencode($_POST['order_id'] ?? $current_order);
-        
+
         $anchor = '';
         if (isset($_POST['action']) && in_array($_POST['action'], ['delete', 'update_item'])) {
             $anchor = '#order-summary';
@@ -122,7 +122,7 @@ unset($_SESSION['message']);
 ?>
 
 <!-- Load dedicated builder styles -->
-<link rel="stylesheet" href="assets/styles/new_order.css">
+
 
 <div class="form-side">
     <header>
@@ -194,7 +194,7 @@ unset($_SESSION['message']);
                 <option value="Parts">
             </datalist>
         </div>
-        
+
         <!-- Quantity and Price -->
         <div class="builder-fields-row">
             <div class="form-group">
@@ -214,7 +214,7 @@ unset($_SESSION['message']);
     <section class="item-list" id="order-summary">
         <h2>Order Summary</h2>
         <div style="margin-bottom: 15px;">
-            <input type="text" id="summary-search" onkeyup="filterSummary()" placeholder="Search added items..." style="width: 100%; height: 40px; padding: 0 15px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <input type="text" id="summary-search" onkeyup="filterSummary()" placeholder="Search added items..." aria-label="Search items in this order" style="width: 100%; height: 40px; padding: 0 15px; border-radius: 10px; border: 1px solid var(--border-color); font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
         </div>
         <div class="table-container">
             <table>
@@ -229,7 +229,7 @@ unset($_SESSION['message']);
                     $stmt = $conn->prepare("SELECT * FROM items WHERE customer_id = ? AND order_id = ? ORDER BY id DESC");
                     $stmt->execute([$current_customer, $current_order]);
                     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                    
+
                     if (count($items) > 0) {
                         foreach($items as $row) {
                             echo "<tr class='summary-item-row'>
@@ -292,7 +292,7 @@ unset($_SESSION['message']);
                 </tbody>
             </table>
         </div>
-        
+
         <?php if (count($items) > 0): ?>
             <div class="builder-footer">
                 <a href="checkout.php?customer_id=<?= urlencode($current_customer) ?>&order_id=<?= urlencode($current_order) ?>" class="btn-checkout-link">
@@ -310,7 +310,7 @@ unset($_SESSION['message']);
             <h2 style="font-weight:900;">🏬 Pick from Warehouse</h2>
             <button type="button" onclick="closeWarehouseModal()" style="background:none; border:none; font-size:2rem; cursor:pointer;">&times;</button>
         </div>
-        
+
         <div style="margin-bottom:20px; display:flex; gap:10px;">
             <input type="text" id="wh-modal-search" onkeyup="searchWarehouseItems()" placeholder="Search by Brand, Model, or Location..." style="flex:1; height:48px; border-radius:12px; border:1px solid #ddd; padding:0 20px; font-size:1rem;">
             <select id="wh-modal-sector" onchange="searchWarehouseItems()" style="height:48px; border-radius:12px; border:1px solid #ddd; padding:0 15px; font-weight:700;">

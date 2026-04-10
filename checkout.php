@@ -125,7 +125,7 @@ try {
             <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">Final Batch Verification</h1>
             <p class="subtitle">Review quantities and pricing for this manifest before final submission.</p>
             <div style="margin-top: 20px; max-width: 500px; margin-left: auto; margin-right: auto;">
-                <input type="text" id="manifest-search" onkeyup="filterManifest()" placeholder="Search items by Brand, Model, Serial, etc..." style="width: 100%; height: 48px; border-radius: 12px; border: 1px solid var(--border-color); font-size: 16px; padding: 0 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <input type="text" id="manifest-search" aria-label="Search manifest items" onkeyup="filterManifest()" placeholder="Search items by Brand, Model, Serial, etc..." style="width: 100%; height: 48px; border-radius: 12px; border: 1px solid var(--border-color); font-size: 16px; padding: 0 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
             </div>
         </div>
 
@@ -177,13 +177,13 @@ try {
                         </td>
                         <td class="col-qty" style="text-align: center;">
                             <span class="print-only" style="font-weight: 700;"><?= (int)$qty ?></span>
-                            <input type="number" name="quantities[<?= $item['id'] ?>]" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()" style="width: 70px; text-align: center; height: 38px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 700;">
+                            <input type="number" name="quantities[<?= $item['id'] ?>]" aria-label="Item Quantity" value="<?= (int)$qty ?>" min="1" class="qty-input no-print" oninput="recalculateTotals()" style="width: 70px; text-align: center; height: 38px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 700;">
                         </td>
                         <td class="col-price" style="text-align: right;">
                             <span class="print-only">$<?= number_format($price, 2) ?></span>
                             <div class="no-print price-input-wrapper" style="display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
                                 <span style="font-weight: 700;">$</span>
-                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" value="<?= number_format($price, 2, '.', '') ?>" step="0.01" min="0" class="price-input" oninput="recalculateTotals()" style="width: 90px; text-align: right; height: 38px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 700;">
+                                <input type="number" name="unit_prices[<?= $item['id'] ?>]" aria-label="Unit Price" value="<?= number_format($price, 2, '.', '') ?>" step="0.01" min="0" class="price-input" oninput="recalculateTotals()" style="width: 90px; text-align: right; height: 38px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 8px; font-weight: 700;">
                             </div>
                         </td>
                         <td class="col-total" style="text-align: right; font-weight: 700; color: var(--text-main); padding-right: 0;">
@@ -264,31 +264,31 @@ try {
             
             <div class="modal-grid">
                 <div class="form-group">
-                    <label>Brand</label>
+                    <label for="modal-brand">Brand</label>
                     <input type="text" id="modal-brand">
                 </div>
                 <div class="form-group">
-                    <label>Model</label>
+                    <label for="modal-model">Model</label>
                     <input type="text" id="modal-model">
                 </div>
                 <div class="form-group" style="grid-column: span 2;">
-                    <label>Series / Project ID</label>
+                    <label for="modal-series">Series / Project ID</label>
                     <input type="text" id="modal-series">
                 </div>
                 <div class="form-group" style="grid-column: span 2;">
-                    <label>CPU / Gen</label>
+                    <label for="modal-cpu">CPU / Gen</label>
                     <input type="text" id="modal-cpu">
                 </div>
                 <div class="form-group" style="grid-column: span 2;">
-                    <label>Condition / Comments</label>
+                    <label for="modal-desc">Condition / Comments</label>
                     <textarea id="modal-desc" style="width:100%; min-height:80px; border-radius:10px; border:1px solid #ddd; padding:10px;"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Quantity</label>
+                    <label for="modal-qty">Quantity</label>
                     <input type="number" id="modal-qty">
                 </div>
                 <div class="form-group">
-                    <label>Unit Price ($)</label>
+                    <label for="modal-price">Unit Price ($)</label>
                     <input type="number" id="modal-price">
                 </div>
             </div>

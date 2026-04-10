@@ -44,7 +44,7 @@ try {
 ?>
 
 <!-- Load dedicated registry styles -->
-<link rel="stylesheet" href="assets/styles/orders.css">
+
 
 <div class="orders-container">
     <header class="orders-header">
@@ -59,8 +59,9 @@ try {
     </header>
 
     <!-- Live Search Input -->
-    <div style="margin-bottom: 24px;">
-        <input type="text" id="order-search" placeholder="Search by Order ID, Company, or Customer ID..." style="height: 50px; border-radius: 12px; font-size: 1rem; border: 1px solid var(--border-color); width: 100%; padding: 0 20px; box-shadow: var(--shadow-sm);" onkeyup="filterOrders()">
+    <div class="orders-search-wrapper">
+        <i class="search-icon">🔍</i>
+        <input type="text" id="order-search" placeholder="Search by Order ID, Company, or Customer ID..." aria-label="Search orders" onkeyup="filterOrders()">
     </div>
 
     <div class="orders-grid" id="orders-grid">
@@ -74,17 +75,12 @@ try {
                 // Combine all searchable terms into a single attribute for efficiency
                 $search_blob = strtolower($order['order_id'] . " " . $company . " " . $order['customer_id']);
 
-                $badge_bg = "#f1f5f9"; $badge_text = "#475569";
-                if ($status === 'paid' || $status === 'finalized') { $badge_bg = "#f0fdf4"; $badge_text = "#166534"; }
-                elseif ($status === 'pending') { $badge_bg = "#fffbeb"; $badge_text = "#92400e"; }
-                elseif ($status === 'dispatched') { $badge_bg = "#eff6ff"; $badge_text = "#1e40af"; }
-                elseif ($status === 'canceled') { $badge_bg = "#fef2f2"; $badge_text = "#991b1b"; }
-                elseif ($status === 'active') { $badge_bg = "#f5f3ff"; $badge_text = "#5b21b6"; }
+                $status_class = "status-" . $status;
             ?>
             <div class="order-card" data-search="<?= htmlspecialchars($search_blob) ?>">
                 <!-- Status Banner -->
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span class="order-badge" style="background: <?= $badge_bg ?>; color: <?= $badge_text ?>;">
+                <div class="order-card-header">
+                    <span class="order-badge <?= $status_class ?>">
                         <?= htmlspecialchars($status) ?>
                     </span>
                     <div class="order-timestamp">
@@ -100,19 +96,24 @@ try {
 
                 <!-- Management & Action Area -->
                 <div class="order-action-row">
-                    <form method="POST" onchange="this.submit()" style="flex:1;">
+                    <form method="POST" onchange="this.submit()" class="status-form">
                         <input type="hidden" name="action" value="update_order_status">
                         <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
-                        <select name="new_status" class="order-status-select">
-                            <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active</option>
-                            <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
-                            <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Paid</option>
-                            <option value="dispatched" <?= $status === 'dispatched' ? 'selected' : '' ?>>Dispatched</option>
-                            <option value="canceled" <?= $status === 'canceled' ? 'selected' : '' ?>>Canceled</option>
-                            <option value="finalized" <?= $status === 'finalized' ? 'selected' : '' ?>>Finalized</option>
-                        </select>
+                        <div class="select-wrapper">
+                            <select name="new_status" class="order-status-select">
+                                <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active</option>
+                                <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Paid</option>
+                                <option value="dispatched" <?= $status === 'dispatched' ? 'selected' : '' ?>>Dispatched</option>
+                                <option value="canceled" <?= $status === 'canceled' ? 'selected' : '' ?>>Canceled</option>
+                                <option value="finalized" <?= $status === 'finalized' ? 'selected' : '' ?>>Finalized</option>
+                            </select>
+                        </div>
                     </form>
-                    <a href="checkout.php?customer_id=<?= urlencode($order['customer_id']) ?>&order_id=<?= urlencode($order['order_id']) ?>" class="btn-order-view">View</a>
+                    <a href="checkout.php?customer_id=<?= urlencode($order['customer_id']) ?>&order_id=<?= urlencode($order['order_id']) ?>" class="btn-order-view">
+                        <span>View Details</span>
+                        <i class="arrow-icon">→</i>
+                    </a>
                 </div>
             </div>
             <?php endforeach; ?>

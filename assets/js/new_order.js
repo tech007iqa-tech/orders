@@ -36,7 +36,7 @@ function initFormDatalists() {
 
             if (modelInput) modelInput.value = '';
             if (seriesInput) seriesInput.value = '';
-            
+
             if (modelDatalist) modelDatalist.innerHTML = '';
             if (seriesDatalist) seriesDatalist.innerHTML = '';
 
@@ -61,15 +61,15 @@ function initSummarySearch() {
 
 /**
  * Copies item description to clipboard
- * @param {HTMLElement} btn 
+ * @param {HTMLElement} btn
  */
 function copyEntry(btn) {
     const container = btn.closest('.col-desc');
     const textNode = container ? container.querySelector('.copyable-text') : null;
     if (!textNode) return;
-    
+
     const text = textNode.innerText.trim();
-    
+
     const performCopy = (textToCopy) => {
         if (navigator.clipboard && window.isSecureContext) {
             return navigator.clipboard.writeText(textToCopy);
@@ -99,7 +99,7 @@ function copyEntry(btn) {
 
 /**
  * Toggles inline editing for quantity and price
- * @param {HTMLElement} btn 
+ * @param {HTMLElement} btn
  */
 function toggleInlineEdit(btn) {
     const row = btn.closest('tr');
@@ -107,7 +107,7 @@ function toggleInlineEdit(btn) {
 
     const staticView = row.querySelector('.static-view');
     const editView = row.querySelector('.edit-view');
-    
+
     if (staticView && editView) {
         const isEditing = staticView.style.display === 'none';
         staticView.style.display = isEditing ? 'flex' : 'none';
@@ -165,7 +165,7 @@ async function searchWarehouseItems() {
     try {
         const response = await fetch(`api/get_warehouse_stock.php?q=${encodeURIComponent(q)}&sector=${encodeURIComponent(sector)}`);
         const items = await response.json();
-        
+
         resultsDiv.innerHTML = '';
         if (!items || items.length === 0) {
             resultsDiv.innerHTML = '<div style="grid-column:1/-1; padding:40px; text-align:center; color:#94a3b8;">No matching stock found.</div>';
@@ -188,9 +188,9 @@ async function searchWarehouseItems() {
             card.onmouseover = () => card.style.background = '#f1f5f9';
             card.onmouseout = () => card.style.background = '#f8fafc';
             card.onclick = () => selectWarehouseItem(item);
-            
+
             const specsStr = Object.entries(item.specs || {}).map(([k,v]) => `${k.toUpperCase()}: ${v}`).join(' | ');
-            
+
             card.innerHTML = `
                 <div style="font-size:0.65rem; color:#64748b; font-weight:800; text-transform:uppercase;">LOC: ${item.location_code}</div>
                 <div style="font-weight:800; font-size:1.1rem; color:#0f172a; margin:4px 0;">${item.brand} ${item.model}</div>
@@ -206,7 +206,7 @@ async function searchWarehouseItems() {
 
 /**
  * Maps warehouse item data back to the order form
- * @param {Object} item 
+ * @param {Object} item
  */
 function selectWarehouseItem(item) {
     const brandEl = document.getElementById('brand');
@@ -215,12 +215,29 @@ function selectWarehouseItem(item) {
     const cpuEl = document.getElementById('cpu');
     const descEl = document.getElementById('description');
 
-    if (brandEl) brandEl.value = item.brand;
-    if (modelsEl) modelsEl.value = item.model;
-    
+    if (brandEl) {
+        // Modernized Selection: Find matching option case-insensitively
+        const options = Array.from(brandEl.options);
+        const match = options.find(opt => opt.value.toLowerCase() === (item.brand || "").toLowerCase());
+
+        if (match) {
+            brandEl.value = match.value;
+        } else {
+            // Check for partial matches (e.g., "Microsoft Gaming" -> "Microsoft", "HP Laptop" -> "HP")
+            const partialMatch = options.find(opt => opt.value.length >= 2 && (item.brand || "").toLowerCase().includes(opt.value.toLowerCase()));
+            brandEl.value = partialMatch ? partialMatch.value : "Other";
+        }
+
+        // IMPORTANT: Manually trigger the change event to populate datalists (models/series options)
+        // This will clear the model/series inputs but that's fine as we set them immediately after.
+        brandEl.dispatchEvent(new Event('change'));
+    }
+
+    if (modelsEl) modelsEl.value = item.model || "";
+
     const specs = item.specs || {};
     if (seriesEl && specs.series) seriesEl.value = specs.series;
-    
+
     if (cpuEl) {
         let cpuVal = "";
         if (specs.cpu) {
@@ -230,7 +247,7 @@ function selectWarehouseItem(item) {
         }
         cpuEl.value = cpuVal;
     }
-    
+
     if (descEl) {
         if (specs.type) {
             descEl.value = specs.type;
@@ -241,24 +258,24 @@ function selectWarehouseItem(item) {
             if (specs.storage) parts.push(specs.storage);
             if (specs.psu) parts.push(specs.psu);
             if (specs.refresh_rate) parts.push(specs.refresh_rate);
-            
+
             descEl.value = parts.join(" | ") || (item.sector + " Unit");
         }
     }
-    
+
     closeWarehouseModal();
-    
+
     // Highlight effect
-    ['brand', 'models', 'series', 'cpu'].forEach(id => {
+    ['brand', 'models', 'series', 'cpu', 'description'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.style.borderColor = 'var(--accent-color)';
             el.style.boxShadow = '0 0 0 4px rgba(140, 198, 63, 0.2)';
             setTimeout(() => {
-                const isDatalist = el.hasAttribute('list');
                 el.style.borderColor = '';
                 el.style.boxShadow = '';
             }, 2000);
         }
     });
 }
+

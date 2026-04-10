@@ -72,7 +72,7 @@ try {
 ?>
 
 <!-- Load dedicated registry styles -->
-<link rel="stylesheet" href="assets/styles/customer_registry.css">
+
 
 <div class="form-side">
     <header>
@@ -146,4 +146,4 @@ try {
     </section>
 </div>
 
-<script src="assets/js/customer_registry.js"></script>
+

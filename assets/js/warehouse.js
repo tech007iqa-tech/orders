@@ -210,8 +210,8 @@ function downloadWarehouseCSV() {
             const loc = card.querySelector('.location-tag')?.innerText || '';
             const brand = card.getAttribute('data-brand') || '';
             const model = card.getAttribute('data-model') || '';
-            const qtyRaw = card.querySelector('.spec-pill')?.innerText || 'Qty: 0';
-            const qty = qtyRaw.replace('Qty: ', '');
+            const qtyElement = card.querySelector('.qty-pill');
+            const qty = qtyElement ? qtyElement.innerText.trim() : '0';
             
             // Map JSON keys to CSV columns (case-insensitive keys from JSON often)
             const rowData = [
