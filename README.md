@@ -14,8 +14,8 @@ A modern, responsive web application for managing hardware inventory and custome
 -   **Interactive Checkout Modal**: Click any manifest row to open a premium glassmorphism Edit Item modal with AJAX **Live Sync** (no page reload) and Print Label support.
 -   **Inline Quick-Edit**: Pencil icon on the Order Summary allows direct Qty/Price edits with smart page-anchor scrolling on reload.
 -   **Technical CPU Tracking**: Specialized hardware categorization from 2nd Gen through 12th Gen for high-volume entry.
--   **Two-Phase Workflow**: Clean separation between customer management and order entry.
--   **Full Customer CRM**: Manage company specifics, addresses, and internal notes.
+-   **Order Transfer Power**: Easily fix mistakes by moving batches between customer accounts with a single click — available in both the Checkout manifest and the Global Batch Registry.
+-   **Dashboard CRM Revamp**: A dual-pane independent scrolling layout for the [Customer Registry](#), featuring visual avatars, **Lifetime Value** stats, and **Last Order Date** tracking.
 -   **Anti-Refresh Pattern (PRG)**: Implements the **Post/Redirect/Get** pattern for zero-error form submissions.
 -   **Zero-Config Backend**: Utilizes **SQLite** — completely portable, no server setup required.
 -   **iOS Safari Optimized**: `16px` input enforcement, `100dvh` viewport fix, `-webkit-overflow-scrolling: touch`, and clipboard fallback.

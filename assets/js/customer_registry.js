@@ -75,77 +75,99 @@ function renderDetailView(data) {
     const drafts = (data.orders_list || []).filter(o => !['finalized', 'paid', 'dispatched'].includes(o.status.toLowerCase()));
     const history = (data.orders_list || []).filter(o => ['finalized', 'paid', 'dispatched'].includes(o.status.toLowerCase()));
 
+    const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
     side.innerHTML = `
         <div class="detail-box">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 25px;">
                 <div class="detail-item" style="margin:0;">
-                    <div class="detail-label">Full Company Name</div>
-                    <div class="detail-value text-main" style="font-size: 1.25rem;">${escapeHTML(data.company_name)}</div>
-                    <div style="margin-top: 6px; font-size: 0.7rem; font-family: monospace; background: #f1f5f9; color: #475569; padding: 3px 8px; border-radius: 6px; display: inline-block; font-weight: 700; letter-spacing: 0.05em;">${escapeHTML(data.customer_id)}</div>
+                    <div class="detail-label">Billing Account</div>
+                    <div class="detail-value text-main" style="font-size: 1.4rem; letter-spacing: -0.02em;">${escapeHTML(data.company_name)}</div>
+                    <div style="margin-top: 6px; font-size: 0.75rem; font-family: monospace; background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 8px; display: inline-block; font-weight: 700; letter-spacing: 0.05em;">${escapeHTML(data.customer_id)}</div>
                 </div>
-                <button onclick='handleEditClick(${JSON.stringify(data).replace(/'/g, "&apos;")})' class="btn-view-cust" title="Edit Account">✎</button>
+                <button onclick='handleEditClick(${JSON.stringify(data).replace(/'/g, "&apos;")})' class="btn-view-cust" title="Edit Account" style="width: 44px; height: 44px; font-size: 1.2rem;">✎</button>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+            <!-- Stats Row -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
+                <div class="stat-chip">
+                    <span class="stat-value">${currencyFormatter.format(data.lifetime_value || 0)}</span>
+                    <span class="stat-label">Lifetime Value</span>
+                </div>
+                <div class="stat-chip">
+                    <span class="stat-value">${data.completed_count || 0}</span>
+                    <span class="stat-label">Completed</span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; border-bottom: 1px dashed var(--border-color); padding-bottom: 20px; margin-bottom: 25px;">
                 <div class="detail-item" style="margin:0;">
                     <div class="detail-label" style="display: flex; align-items: center; gap: 5px;">📅 Next Callback</div>
-                    <div class="detail-value" style="font-weight: 700; color: var(--accent-color);">${data.callback_date ? escapeHTML(data.callback_date) : 'Not Set'}</div>
+                    <div class="detail-value" style="font-weight: 800; color: var(--accent-color);">${data.callback_date ? escapeHTML(data.callback_date) : 'Not Set'}</div>
                 </div>
                 <div class="detail-item" style="margin:0;">
-                    <div class="detail-label" style="display: flex; align-items: center; gap: 5px;">✉️ Last Message Date</div>
-                    <div class="detail-value" style="font-weight: 700;">${data.message_date ? escapeHTML(data.message_date) : 'Not Set'}</div>
+                    <div class="detail-label" style="display: flex; align-items: center; gap: 5px;">✉️ Last Contact</div>
+                    <div class="detail-value" style="font-weight: 800;">${data.message_date ? escapeHTML(data.message_date) : 'Not Set'}</div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; margin-bottom: 10px;">
                 <div class="detail-item">
-                    <div class="detail-label">Contact Person</div>
-                    <div class="detail-value">${escapeHTML(data.contact_person)}</div>
+                    <div class="detail-label">Primary Contact</div>
+                    <div class="detail-value" style="font-size: 0.9rem;">${escapeHTML(data.contact_person)}</div>
                 </div>
                 <div class="detail-item">
                     <div class="detail-label">Website</div>
-                    <div class="detail-value">${data.website ? `<a href="${escapeHTML(data.website)}" target="_blank" style="color: var(--accent-color); text-decoration:none;">Visit</a>` : '—'}</div>
+                    <div class="detail-value">${data.website ? `<a href="${escapeHTML(data.website)}" target="_blank" style="color: var(--accent-color); text-decoration:none; display: flex; align-items: center; gap: 4px;">Visit ↗</a>` : '—'}</div>
                 </div>
             </div>
 
             <div class="detail-item">
-                <div class="detail-label">Draft / Open Batches</div>
-                <div id="side-drafts" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                <div class="detail-label">Active Batch Pipeline</div>
+                <div id="side-drafts" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px;">
                     ${drafts.length > 0 ? drafts.map(o => `
                         <a href="index.php?customer_id=${encodeURIComponent(data.customer_id)}&order_id=${encodeURIComponent(o.order_id)}"
                            class="order-row-link">
-                            <div>
-                                <div style="font-weight: 700; font-size: 0.9rem;">Batch: ${o.created_at}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main);">${o.order_id}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">${o.created_at}</div>
                             </div>
-                            <span class="qty-chip" style="font-size: 0.7rem; background: #fffbeb; color: #92400e; box-shadow: none;">Resume →</span>
+                            <div style="text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+                                <span class="badge status-active" style="font-size: 0.65rem;">${o.total_qty || 0} Items</span>
+                                <div style="font-weight: 800; font-size: 0.9rem;">${currencyFormatter.format(o.total_value || 0)}</div>
+                            </div>
                         </a>
-                    `).join('') : '<div class="empty-state" style="padding: 10px; font-size: 0.75rem; color: #94a3b8;">No draft orders.</div>'}
+                    `).join('') : '<div class="empty-state" style="padding: 20px; font-size: 0.8rem; border-radius: 12px; background: #f8fafc; border: 1px dashed #e2e8f0; color: #94a3b8;">No active batches.</div>'}
                 </div>
             </div>
 
             <div class="detail-item">
-                <div class="detail-label">Completed / History</div>
-                <div id="side-completed" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                <div class="detail-label">Fulfillment History</div>
+                <div id="side-completed" style="display: flex; flex-direction: column; gap: 10px;">
                     ${history.length > 0 ? history.map(o => `
                         <a href="checkout.php?customer_id=${encodeURIComponent(data.customer_id)}&order_id=${encodeURIComponent(o.order_id)}"
                            class="order-row-link completed">
-                            <div>
-                                <div style="font-weight: 600; font-size: 0.85rem; color: #64748b;">Batch: ${o.created_at}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; font-size: 0.9rem; color: #64748b;">${o.order_id}</div>
+                                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">${o.created_at}</div>
                             </div>
-                            <span class="qty-chip" style="font-size: 0.7rem; background: #f1f5f9; color: #475569; box-shadow: none;">Modify</span>
+                            <div style="text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+                                <span class="badge badge-completed" style="font-size: 0.65rem; opacity: 0.8;">${o.total_qty || 0} Items</span>
+                                <div style="font-weight: 700; font-size: 0.9rem; color: #64748b;">${currencyFormatter.format(o.total_value || 0)}</div>
+                            </div>
                         </a>
-                    `).join('') : '<div class="empty-state" style="padding: 10px; font-size: 0.75rem; color: #94a3b8;">No completion history.</div>'}
+                    `).join('') : '<div class="empty-state" style="padding: 20px; font-size: 0.8rem; border-radius: 12px; background: #f8fafc; border: 1px dashed #e2e8f0; color: #94a3b8;">No completion history.</div>'}
                 </div>
             </div>
 
-            <div class="detail-item" style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color);">
-                <div class="detail-label" style="display: flex; align-items: center; gap: 5px;">📝 CRM Notes</div>
-                <div class="detail-value" style="font-size: 0.85rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.5;">${data.internal_notes ? escapeHTML(data.internal_notes) : '<i style="opacity:0.5;">No notes recorded for this customer.</i>'}</div>
+            <div class="detail-item" style="background: #f8fafc; padding: 16px; border-radius: 12px; margin-top: 15px; border: 1px solid var(--border-color);">
+                <div class="detail-label" style="display: flex; align-items: center; gap: 5px; color: var(--text-main); font-size: 0.65rem; opacity: 0.8;">📜 Internal CRM Notes</div>
+                <div class="detail-value" style="font-size: 0.9rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.5; font-weight: 500; margin-top: 6px;">${data.internal_notes ? escapeHTML(data.internal_notes) : '<i style="opacity:0.4;">No internal notes recorded.</i>'}</div>
             </div>
 
-            <div style="padding-top: 10px; border-top: 1px dashed var(--border-color); margin-top: 20px;">
-                <a href="index.php?customer_id=${encodeURIComponent(data.customer_id)}&action=create_new_order" class="btn-main" style="text-decoration:none; display:flex; align-items:center; justify-content:center; padding: 16px; border-radius: 12px; background: var(--accent-color); color: white; font-weight: 800; text-align: center; gap: 8px; box-shadow: 0 10px 15px -3px rgba(140, 198, 63, 0.3);">
-                    <span>+</span> Start New Fresh Order
+            <div style="padding-top: 20px; padding-bottom: 20px;">
+                <a href="index.php?customer_id=${encodeURIComponent(data.customer_id)}&action=create_new_order" class="btn-register" style="display:flex; align-items:center; justify-content:center; gap: 10px; height: 54px; font-size: 1rem;">
+                    <span>+</span> Create New Fresh Batch
                 </a>
             </div>
         </div>

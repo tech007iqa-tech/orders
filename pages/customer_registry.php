@@ -80,12 +80,13 @@ try {
         <p class="subtitle">Select a customer below or register a new one to begin.</p>
     </header>
 
-    <div style="margin-bottom: 30px;">
-        <a href="index.php?view=register" class="btn-main" style="text-decoration:none; display:inline-block; padding: 12px 24px; border-radius: 12px; background: var(--accent-color); color: white; font-weight: 700; width: 100%; text-align: center;">+ Register New Customer</a>
+    <div class="registry-actions">
+        <a href="index.php?view=register" class="btn-register">+ Register New Customer</a>
     </div>
 
-    <div class="search-box" style="margin-bottom: 20px;">
-        <input type="text" id="cust-search" placeholder="Search by name or ID..." style="font-size: 0.9rem;" onkeyup="filterCustomers()">
+    <div class="search-wrapper">
+        <i class="search-icon">🔍</i>
+        <input type="text" id="cust-search" placeholder="Search by name or ID..." onkeyup="filterCustomers()">
     </div>
 
     <div class="registry-list" id="customer-list">
@@ -94,32 +95,51 @@ try {
         $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         foreach($customers as &$c) {
-            $stmt_o = $conn_orders->prepare("SELECT order_id, created_at, status FROM orders WHERE customer_id = ? ORDER BY created_at DESC");
+            // Enhanced order query to get totals
+            $stmt_o = $conn_orders->prepare("
+                SELECT o.order_id, o.created_at, o.status,
+                       (SELECT SUM(quantity) FROM items WHERE order_id = o.order_id) as total_qty,
+                       (SELECT SUM(quantity * unit_price) FROM items WHERE order_id = o.order_id) as total_value
+                FROM orders o 
+                WHERE o.customer_id = ? 
+                ORDER BY o.created_at DESC
+            ");
             $stmt_o->execute([$c['customer_id']]);
             $c['orders_list'] = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
             
-            // Calculate specific counts
+            // Calculate specific counts and total value
             $completed_count = 0;
             $active_count = 0;
+            $lifetime_value = 0;
             foreach ($c['orders_list'] as $o) {
-                if (in_array(strtolower($o['status']), ['finalized', 'paid', 'dispatched'])) $completed_count++;
-                else $active_count++;
+                if (in_array(strtolower($o['status']), ['finalized', 'paid', 'dispatched'])) {
+                    $completed_count++;
+                } else {
+                    $active_count++;
+                }
+                $lifetime_value += ($o['total_value'] ?? 0);
             }
             $c['completed_count'] = $completed_count;
             $c['active_count'] = $active_count;
+            $c['lifetime_value'] = $lifetime_value;
         }
         unset($c);
 
         if (count($customers) > 0) {
-                foreach($customers as $c) {
+            foreach($customers as $c) {
+                $initial = strtoupper(substr($c['company_name'], 0, 1));
                 $json_data = htmlspecialchars(json_encode($c), ENT_QUOTES, 'UTF-8');
+                $status_class = $c['active_count'] > 0 ? 'status-active' : 'status-idle';
+                $status_text = $c['active_count'] > 0 ? 'Active Batch' : 'Idle';
+                
                 echo "<div class='cust-card' onclick='showDetails(this)' data-customer='{$json_data}' data-search='" . htmlspecialchars($c['company_name'] . " " . $c['customer_id']) . "'>
+                        <div class='cust-avatar'>{$initial}</div>
                         <div class='cust-main'>
                             <div class='cust-name'>" . htmlspecialchars($c['company_name']) . "</div>
-                            <div style='font-size: 0.75rem; font-family: monospace; color: var(--text-secondary); margin-bottom: 8px;'>" . htmlspecialchars($c['customer_id']) . "</div>
-                            <div style='display:flex; align-items:center; flex-wrap: wrap; gap: 8px;'>
-                                <div style='font-size: 0.7rem; background: #f0fdf4; color:#166534; padding:3px 8px; border-radius:10px; font-weight:700; white-space: nowrap;'>{$c['completed_count']} Completed</div>
-                                " . ($c['active_count'] > 0 ? "<div style='font-size: 0.7rem; background: #fffbeb; color:#92400e; padding:3px 8px; border-radius:10px; font-weight:700; white-space: nowrap;'>{$c['active_count']} Drafts</div>" : "") . "
+                            <div class='cust-id'>" . htmlspecialchars($c['customer_id']) . "</div>
+                            <div class='cust-meta-row'>
+                                <span class='badge badge-completed'>{$c['completed_count']} Orders</span>
+                                <span class='badge status-idle'>Last Order: " . (!empty($c['orders_list']) ? date('M d, Y', strtotime($c['orders_list'][0]['created_at'])) : 'None') . "</span>
                             </div>
                         </div>
                         <div class='card-actions'>

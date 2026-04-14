@@ -23,11 +23,11 @@
     <!-- Conditional Style Discovery (Avoids Chaining) -->
     <?php
         $view = $_GET['view'] ?? '';
-        $v = "1.1";
+        $v = "1.2"; // Incremented version for cache busting
         if (isset($_GET['customer_id'])) echo '<link rel="stylesheet" href="assets/styles/new_order.css?v='.$v.'">';
         if ($view === 'orders') echo '<link rel="stylesheet" href="assets/styles/orders.css?v='.$v.'">';
         if ($view === 'warehouse') echo '<link rel="stylesheet" href="assets/styles/warehouse.css?v='.$v.'">';
-        if ($view === 'register') echo '<link rel="stylesheet" href="assets/styles/customer_registry.css?v='.$v.'">';
+        if ($view === 'register' || ($view === '' && !isset($_GET['customer_id']))) echo '<link rel="stylesheet" href="assets/styles/customer_registry.css?v='.$v.'">';
     ?>
 
     <link rel="icon" type="image/png" href="assets/icon/smart-home-sensor-wifi-black-outline-25276_1024.png">

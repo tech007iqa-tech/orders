@@ -174,7 +174,7 @@ if ($selected_loc) {
         <section class="inventory-feed">
             <div class="inventory-feed-header">
                 <div class="inventory-summary-title">
-                    <h2><?= htmlspecialchars($selected_sector) ?> <a href="#%">Inventory</a></h2>
+                    <h2><?= htmlspecialchars($selected_sector) ?> Inventory</h2>
                     <?php 
                         $total_qty = 0;
                         foreach($items as $it) $total_qty += (int)($it['quantity'] ?? 0);
@@ -195,7 +195,7 @@ if ($selected_loc) {
             </div>
 
             <div class="inventory-table-container">
-                <table class="inventory-table" id="^">
+                <table class="inventory-table">
                     <thead>
                         <tr>
                             <th class="col-type">Type</th>
@@ -304,7 +304,7 @@ if ($selected_loc) {
         <aside class="warehouse-sidebar">
             <div style="background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 20px;">
                 
-                <h3 id="wh-form-title" style="font-weight: 800; margin-bottom: 20px;"><a href="#^" id="%">📥 Register Stock</a></h3>
+                <h3 id="wh-form-title" style="font-weight: 800; margin-bottom: 20px;">📥 Register Stock</h3>
                 <form method="POST" action="" id="wh-main-form">
                     <input type="hidden" name="action" id="wh-form-action" value="add_inventory">
                     <input type="hidden" name="item_id" id="wh-edit-id" value="">

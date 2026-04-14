@@ -6,11 +6,14 @@ A robust, high-performance order procurement application designed for building a
 
 ## 🚀 Core Features
 
-### 1. Active Customer Registry
-Manage your entire B2B database from a centralized dashboard.
-- **Smart Search**: Instantly filter customers by name or ID.
-- **Dynamic Detail View**: Select a customer to see their order history, active drafts, and account details.
-- **In-Place Editing**: Update company profiles without navigating away.
+### 1. Active Customer Registry Dashboard
+Manage the entire B2B database from a high-performance centralized interface.
+- **Dual-Pane Independent Scrolling**: A dashboard-style layout where the customer list (left) and detail profile (right) scroll independently, the UI is optimized to prevent content clipping on all viewport sizes.
+- **Live Business Intelligence**:
+    - **Lifetime Value (LTV)**: Automatically calculated total gross value from all finalized batches.
+    - **Last Order Tracking**: At-a-glance visibility of the most recent batch date for every account.
+    - **Order History**: Clean breakdown of active vs. completed batches with deep links to their respective manifests.
+- **Internal CRM Notes**: Dedicated space for tracking procurement habits and account-specific instructions.
 
 ### 2. Batch Builder (Order Entry) — `pages/new_order.php`
 The central tool for adding hardware to active orders.
@@ -40,11 +43,13 @@ A standalone PHP label printer requiring zero external dependencies.
 - **Typography**: 16pt Times New Roman bold title (wrapped across up to 3 lines) + 7pt Arial bold technical specs.
 - **Triggered from**: The Edit Item modal in `checkout.php`.
 
-### 5. Global Batch Registry — `pages/orders.php`
-- **Live Search**: Filter all batches by Order ID, Company Name, or Customer ID.
-- **Status Management**: Update fulfillment state (Active → Pending → Paid → Dispatched → Finalized) via an inline dropdown with AJAX submission.
+### 6. Order Transfer System
+A specialized utility for fixing assignment errors without manual data entry.
+- **Cross-Account Relocation**: Move any order (and its associated item entries) from one customer to another instantly.
+- **Global & Local Access**: Trigger transfers from the **Global Batch Registry** card view or directly from the **Checkout Manifest** bill-to area.
+- **Data Integrity**: Automatically synchronizes both the `orders` and `items` tables to ensure inventory history remains accurate.
 
-### 6. System Settings
+### 7. System Settings
 Administrative control panel for system-wide configuration.
 - **Staff Management**: Add or remove access for employees.
 - **Invoice Signatures**: Define the "Approved By" name used on official documents.

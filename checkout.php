@@ -22,6 +22,24 @@ try {
     $conn_items = new PDO("sqlite:" . $db_items);
     $conn_cust = new PDO("sqlite:" . $db_cust);
     $conn_items->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn_cust->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // Handle Order Transfer
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'transfer_order') {
+        $order_id = $_POST['order_id'];
+        $new_customer_id = $_POST['new_customer_id'];
+
+        // Update orders table
+        $stmt_o = $conn_items->prepare("UPDATE orders SET customer_id = ? WHERE order_id = ?");
+        $stmt_o->execute([$new_customer_id, $order_id]);
+
+        // Update items table
+        $stmt_i = $conn_items->prepare("UPDATE items SET customer_id = ? WHERE order_id = ?");
+        $stmt_i->execute([$new_customer_id, $order_id]);
+
+        header("Location: checkout.php?customer_id=" . urlencode($new_customer_id) . "&order_id=" . urlencode($order_id));
+        exit();
+    }
 
     // Handle Full Item Metadata & Finalization
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -99,6 +117,10 @@ try {
     $stmt->execute([$customer_id, $active_order_id]);
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Fetch all customers for transfer modal
+    $stmt_all_c = $conn_cust->query("SELECT customer_id, company_name FROM customers ORDER BY company_name ASC");
+    $all_customers = $stmt_all_c->fetchAll(PDO::FETCH_ASSOC);
+
 } catch (PDOException $e) {
     die("Error: " . $e->getMessage());
 }
@@ -129,10 +151,15 @@ try {
             </div>
         </div>
 
-        <div style="border-bottom: 1px dashed var(--border-color); padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between;">
+        <div style="border-bottom: 1px dashed var(--border-color); padding-bottom: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
                 <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Billing Account</div>
-                <div style="font-weight: 700; color: var(--text-main); font-size: 1.1rem;"><?= htmlspecialchars($customer['company_name'] ?? 'Account Not Found') ?></div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="font-weight: 700; color: var(--text-main); font-size: 1.1rem;"><?= htmlspecialchars($customer['company_name'] ?? 'Account Not Found') ?></div>
+                    <button type="button" onclick="openTransferModal()" class="no-print" style="background: #f1f5f9; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; cursor: pointer; color: #475569;">
+                        ⇄ Transfer
+                    </button>
+                </div>
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px;">Order Date</div>
@@ -307,5 +334,45 @@ try {
     <p style="margin-top: 24px; font-size: 0.85rem; color: var(--text-secondary);" class="no-print">
         <a href="index.php?customer_id=<?= urlencode($customer_id) ?>&order_id=<?= urlencode($active_order_id) ?>" style="color: var(--accent-color); text-decoration: none; font-weight: 700;">← Back to Order Entry (Edit)</a>
     </p>
+
+    <!-- Transfer Order Modal -->
+    <div id="transferModal" class="modal-overlay no-print" onclick="if(event.target === this) closeTransferModal()">
+        <div class="modal-box" style="max-width: 450px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h3 style="font-weight: 800; font-size: 1.25rem;">⇄ Transfer Global Batch</h3>
+                <button type="button" onclick="closeTransferModal()" style="background:none; border:none; cursor:pointer; font-size:1.5rem; opacity:0.5;">&times;</button>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 20px;">Relocate this entire order and all its items to a different customer account.</p>
+            
+            <form method="POST">
+                <input type="hidden" name="action" value="transfer_order">
+                <input type="hidden" name="order_id" value="<?= htmlspecialchars($active_order_id) ?>">
+                
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label for="new_customer_id">Target Customer Account</label>
+                    <select name="new_customer_id" id="new_customer_id" required style="width: 100%; height: 48px; border-radius: 12px; border: 1px solid var(--border-color); padding: 0 15px; font-weight: 600;">
+                        <?php foreach($all_customers as $c): ?>
+                            <option value="<?= htmlspecialchars($c['customer_id']) ?>" <?= $c['customer_id'] === $customer_id ? 'disabled' : '' ?>>
+                                <?= htmlspecialchars($c['company_name']) ?> (<?= htmlspecialchars($c['customer_id']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-main" style="width: 100%; border:none; cursor:pointer; height: 54px; background: var(--accent-color); color: white; border-radius: 14px; font-weight: 800; box-shadow: 0 4px 12px rgba(140, 198, 63, 0.2);">
+                    Confirm Transfer
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openTransferModal() {
+            document.getElementById('transferModal').classList.add('active');
+        }
+        function closeTransferModal() {
+            document.getElementById('transferModal').classList.remove('active');
+        }
+    </script>
 </body>
 </html>
