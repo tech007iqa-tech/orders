@@ -281,3 +281,71 @@ function filterCustomers() {
         cards[i].style.display = search.includes(filter) ? "" : "none";
     }
 }
+
+/**
+ * Shows the customer profile modal
+ * @param {Event} event
+ * @param {Customer} data
+ */
+function showProfile(event, data) {
+    if (event) event.stopPropagation();
+
+    const modal = document.getElementById('profile-modal');
+    const content = document.getElementById('profile-content');
+    if (!modal || !content) return;
+
+    const initial = data.company_name.charAt(0).toUpperCase();
+
+    content.innerHTML = `
+        <div class="profile-header">
+            <div class="profile-avatar">${initial}</div>
+            <div class="profile-info">
+                <h1>${escapeHTML(data.company_name)}</h1>
+                <span class="profile-id">${escapeHTML(data.customer_id)}</span>
+            </div>
+        </div>
+
+        <div class="profile-grid">
+            <div class="profile-field">
+                <div class="profile-field-label">Contact Person</div>
+                <div class="profile-field-value">${escapeHTML(data.contact_person)}</div>
+            </div>
+            <div class="profile-field">
+                <div class="profile-field-label">Phone Number</div>
+                <div class="profile-field-value">${escapeHTML(data.phone)}</div>
+            </div>
+            <div class="profile-field">
+                <div class="profile-field-label">Email Address</div>
+                <div class="profile-field-value">${escapeHTML(data.email)}</div>
+            </div>
+            <div class="profile-field">
+                <div class="profile-field-label">Website</div>
+                <div class="profile-field-value">${data.website ? `<a href="${escapeHTML(data.website)}" target="_blank" style="color:var(--accent-color);">${escapeHTML(data.website)}</a>` : '—'}</div>
+            </div>
+        </div>
+
+        <div class="profile-field" style="margin-bottom: 20px;">
+            <div class="profile-field-label">Primary Office Address</div>
+            <div class="profile-field-value" style="font-size: 0.9rem;">${escapeHTML(data.address)}</div>
+        </div>
+
+        <div class="profile-field-label">Internal CRM Briefing</div>
+        <div class="profile-notes">
+            ${data.internal_notes ? escapeHTML(data.internal_notes) : '<i>No special notes recorded for this account.</i>'}
+        </div>
+    `;
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Lock background scroll
+}
+
+/**
+ * Closes the customer profile modal
+ */
+function closeProfile() {
+    const modal = document.getElementById('profile-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}

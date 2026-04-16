@@ -135,7 +135,7 @@ try {
                 echo "<div class='cust-card' onclick='showDetails(this)' data-customer='{$json_data}' data-search='" . htmlspecialchars($c['company_name'] . " " . $c['customer_id']) . "'>
                         <div class='cust-avatar'>{$initial}</div>
                         <div class='cust-main'>
-                            <div class='cust-name'>" . htmlspecialchars($c['company_name']) . "</div>
+                             <div class='cust-name' onclick='showProfile(event, {$json_data})'>" . htmlspecialchars($c['company_name']) . "</div>
                             <div class='cust-id'>" . htmlspecialchars($c['customer_id']) . "</div>
                             <div class='cust-meta-row'>
                                 <span class='badge badge-completed'>{$c['completed_count']} Orders</span>
@@ -164,6 +164,16 @@ try {
             </div>
         </div>
     </section>
+</div>
+
+<!-- Profile Modal -->
+<div id="profile-modal" class="modal-overlay" onclick="closeProfile()">
+    <div class="profile-modal-box" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeProfile()">✖</button>
+        <div id="profile-content">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
 </div>
 
 

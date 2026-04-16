@@ -80,33 +80,28 @@ a {
     box-shadow: var(--shadow-sm);
     padding: 32px;
     display: flex;
-    flex-direction: row;
-    /* Sidebar | Main logic */
+    flex-direction: column; /* Summary now under Form */
     gap: 40px;
     animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .container.order-view {
-    flex-direction: column;
     max-width: 1600px;
     width: 95%;
     gap: 20px;
 }
 
 .form-side {
-    flex: 1;
+    width: 100%;
     min-width: 0;
-    /* Fix flex overflow */
 }
 
 .summary-side {
-    width: fit-content;
-    flex-shrink: 0;
-    position: sticky;
-    top: 20px;
-    align-self: flex-start;
-    height: auto;
-    max-height: calc(100vh - 40px);
+    width: 100%;
+    background: #fafafa;
+    border-top: 1px solid var(--border-color);
+    padding: 32px 0 0 0;
+    margin-top: 20px;
     display: flex;
     flex-direction: column;
 }
@@ -118,27 +113,18 @@ a {
     }
 
     .container {
-        flex-direction: column;
-        align-items: center;
-        padding: 20px 16px;
-        max-width: 100%;
+        padding: 24px 16px;
     }
 
     .container.order-view {
         width: 100%;
         padding: 16px 12px;
         border-radius: 12px;
-        max-width: 100%;
     }
     
     .summary-side, #customer-details {
-        width: 100% !important;
-        position: static;
         margin-top: 30px;
-        border-left: none;
-        border-top: 1px solid var(--border-color);
         padding-top: 30px;
-        max-height: none;
     }
 
     .breadcrumb-container {
@@ -278,14 +264,7 @@ input[type="submit"]:active {
     box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
 }
 
-/* Summary Side Styling - Ultra Modern Refinement */
-.summary-side {
-    background: #fafafa;
-    border-left: 1px solid var(--border-color);
-    padding-left: 32px;
-    margin-left: -8px; /* Offset the container padding slightly for better divider look */
-}
-
+/* Summary Side Styling - Simplified Vertical Layout */
 .summary-side h2 {
     font-size: 0.85rem;
     margin-bottom: 24px;

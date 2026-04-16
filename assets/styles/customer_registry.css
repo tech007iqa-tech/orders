@@ -100,6 +100,13 @@
     color: var(--text-main);
     font-size: 1.05rem;
     margin-bottom: 2px;
+    cursor: pointer;
+    transition: color 0.2s;
+    width: fit-content;
+}
+
+.cust-name:hover {
+    color: var(--accent-color);
 }
 
 .cust-id {
@@ -251,40 +258,30 @@
     font-weight: 700;
 }
 
-/* Dashboard-style independent scrolling layout */
+/* Dashboard-style Vertical Stack layout */
 .container:not(.order-view) {
-    height: calc(100vh - 120px);
     display: flex;
-    flex-direction: row;
-    overflow: hidden;
-    gap: 0; /* Align perfectly */
-    padding: 0; /* Maximize space */
-    border: none;
-    background: transparent;
-    box-shadow: none;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px;
 }
 
 .form-side {
-    flex: 1;
-    height: 100%;
-    overflow-y: scroll; /* Force visibility or use auto */
+    width: 100%;
     padding: 24px;
     background: white;
     border: 1px solid var(--border-color);
-    border-radius: 20px 0 0 20px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
 }
 
 #customer-details.summary-side {
-    width: 480px; /* Fixed width for stability */
-    height: 100%;
-    overflow-y: scroll;
-    overflow-x: hidden;
+    width: 100%;
     padding: 32px;
-    padding-bottom: 120px; /* Force space for the footer button */
     background: #fafafa;
     border: 1px solid var(--border-color);
-    border-left: none;
-    border-radius: 0 20px 20px 0;
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
 }
 
 /* Scrollbar Refinement */
@@ -297,8 +294,6 @@
 #customer-details.summary-side::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 10px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
 }
 
 .item-list {
@@ -326,4 +321,136 @@
 
 #side-details {
     flex: 1;
+}
+
+/* Profile Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.profile-modal-box {
+    background: white;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 32px;
+    padding: 40px;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform: translateY(20px) scale(0.95);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-overlay.active .profile-modal-box {
+    transform: translateY(0) scale(1);
+}
+
+.close-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: #f1f5f9;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.close-btn:hover {
+    background: #e2e8f0;
+    color: var(--text-main);
+    transform: rotate(90deg);
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-dark));
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: white;
+    box-shadow: 0 10px 20px -5px rgba(140, 198, 63, 0.4);
+}
+
+.profile-info h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.profile-id {
+    font-family: monospace;
+    color: var(--text-secondary);
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 32px;
+}
+
+.profile-field-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.profile-field-value {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 1.05rem;
+}
+
+.profile-notes {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 18px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.6;
 }

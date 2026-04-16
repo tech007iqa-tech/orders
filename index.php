@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Entry | IQA Metal</title>
-    <meta name="description" content="IQA Metal Order Management and Warehouse Control System. Efficiently manage batches, inventory, and customer fulfillments.">
+    <meta name="description" content="IQA Metal Order Management and Warehouse Control System. Efficiently manage batches,      , and customer fulfillments.">
 
     <!-- Optimize Third-Party Connections (Non-blocking Fonts) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -113,6 +113,10 @@
     </div>
     <footer class="footer" role="contentinfo">
     <nav class="breadcrumbs">
+            <a href="../app/"
+                class="crumb <?= !isset($_GET['customer_id']) && !isset($_GET['view']) ? 'active' : '' ?>">
+                <span class="step-num">📦</span> Labels
+            </a>
             <a href="index.php"
                 class="crumb <?= !isset($_GET['customer_id']) && !isset($_GET['view']) ? 'active' : '' ?>">
                 <span class="step-num">&#8507;</span> Customers
