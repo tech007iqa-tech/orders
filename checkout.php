@@ -132,8 +132,8 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Checkout - IQA</title>
-    <link rel="stylesheet" href="assets/styles/style.css">
-    <link rel="stylesheet" href="assets/styles/checkout.css">
+    <link rel="stylesheet" href="assets/styles/style.css?v=1.2">
+    <link rel="stylesheet" href="assets/styles/checkout.css?v=1.2">
     <link rel="icon" type="image/png" href="assets/icon/smart-home-sensor-wifi-black-outline-25276_1024.png">
 </head>
 <body style="flex-direction: column; background: #f8fafc;">
@@ -264,7 +264,7 @@ try {
         console.log("Customer:", customerName);
         console.log("Order ID:", orderID);
         </script>
-        <script src="assets/js/checkout.js"></script>
+        <script src="assets/js/checkout.js?v=1.4"></script>
 
         <!-- Final Manifest Approval (Print Exclusive) -->
         <div class="manifest-print-footer print-only">

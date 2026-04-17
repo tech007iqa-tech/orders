@@ -295,6 +295,21 @@ if ($selected_loc) {
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </tbody>
+                    <tfoot style="border-top: 2px solid #e2e8f0; background: #f8fafc;">
+                        <tr>
+                            <td colspan="2" style="text-align: right; padding: 15px; font-size: 1.1rem; color: #334155; font-weight: 800;">Inventory Total:</td>
+                            <td style="padding: 15px;">
+                                <span class="qty-pill" id="table-total-qty" style="background: #1e293b; color: white; font-size: 1.1rem; padding: 6px 12px;">
+                                    <?= number_format($total_qty) ?>
+                                </span>
+                            </td>
+                            <?php if ($selected_sector === 'Laptops' || $selected_sector === 'Gaming'): ?>
+                                <td colspan="6"></td>
+                            <?php else: ?>
+                                <td colspan="3"></td>
+                            <?php endif; ?>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </section>

@@ -32,7 +32,7 @@ async function handlePrintManifest() {
 
     const printBtn = document.querySelector('.btn-print-action');
     if (!printBtn) return;
-    
+
     const originalText = printBtn.innerHTML;
 
     try {
@@ -82,6 +82,7 @@ function downloadCSV() {
 
     let totalQty = 0;
     let grandTotal = 0;
+    let rowCount = 0;
 
     const rows = document.querySelectorAll('.item-row');
     const sanitize = (val) => `"${(val || '').toString().trim().replace(/"/g, '""')}"`;
@@ -91,7 +92,7 @@ function downloadCSV() {
         const brand = row.querySelector('.item-brand')?.innerText || '';
         const model = row.querySelector('.item-model')?.innerText || '';
         const metaText = row.querySelector('.copyable-text div:last-child')?.innerText || '';
-        
+
         // Parse "Series | CPU | Description"
         const metaParts = metaText.split('|').map(p => p.trim());
         const series = metaParts[0] || '';
@@ -101,22 +102,28 @@ function downloadCSV() {
         // Pull values from inputs
         const qtyIn = row.querySelector('.qty-input');
         const priceIn = row.querySelector('.price-input');
-        
+
         const liveQty = qtyIn ? parseInt(qtyIn.value) || 0 : 0;
         const livePrice = priceIn ? parseFloat(priceIn.value) || 0 : 0;
         const rowTotal = liveQty * livePrice;
 
-        // "Type" placeholder or guess based on Brand
-        const type = ""; 
+        // Default type to Laptop
+        const type = "Laptop";
 
-        csv += `${sanitize(type)},${sanitize(brand)},${sanitize(model)},${sanitize(series)},${sanitize(cpu)},${sanitize(desc)},${livePrice},${liveQty},${rowTotal.toFixed(2)}\n`;
-        
+        csv += `${sanitize(type)},${sanitize(brand)},${sanitize(model)},${sanitize(series)},${sanitize(cpu)},${sanitize(desc)},${sanitize(livePrice)},${sanitize(liveQty)},${sanitize(rowTotal.toFixed(2))}\n`;
+
         totalQty += liveQty;
         grandTotal += rowTotal;
+        rowCount++;
     });
 
-    csv += `\n,,,,,,,,"Total QTY","${totalQty}"\n`;
-    csv += `,,,,,,,,"Total Amount","$${grandTotal.toFixed(2)}"\n`;
+    // Removed 42-row padding per user request
+
+    // Alignment Fix:
+    // "Total QTY" label in Col 7, Value in Col 8
+    // "Total Amount" label in Col 8, Value in Col 9
+    csv += `\n,,,,,,${sanitize("Total QTY")},${sanitize(totalQty)},\n`;
+    csv += `,,,,,,,${sanitize("Total Amount")},${sanitize("$" + grandTotal.toFixed(2))}\n`;
 
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -134,12 +141,12 @@ function downloadCSV() {
 function recalculateTotals() {
     let grandTotal = 0;
     const rows = document.querySelectorAll('.item-row');
-    
+
     rows.forEach(row => {
         const qtyIn = row.querySelector('.qty-input');
         const priceIn = row.querySelector('.price-input');
         const subDisplay = row.querySelector('.row-subtotal');
-        
+
         const qty = qtyIn ? parseFloat(qtyIn.value) || 0 : 0;
         const price = priceIn ? parseFloat(priceIn.value) || 0 : 0;
         const subtotal = qty * price;
@@ -156,7 +163,7 @@ function recalculateTotals() {
         grandTotal += subtotal;
     });
 
-        const grandDisplay = document.getElementById('grand-total-display');
+    const grandDisplay = document.getElementById('grand-total-display');
     if (grandDisplay) {
         grandDisplay.innerText = grandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
@@ -193,7 +200,7 @@ function copyEntry(btn) {
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            try { document.execCommand('copy'); } catch (e) {}
+            try { document.execCommand('copy'); } catch (e) { }
             document.body.removeChild(textArea);
             return Promise.resolve();
         }
@@ -232,7 +239,7 @@ function openEditModal(index) {
     if (!modal) return;
 
     modal.classList.add('active');
-    
+
     // Map data to modal fields
     const fields = {
         'modal-item-id': item.id,
@@ -289,7 +296,7 @@ async function saveItemChanges() {
 
     const saveBtn = document.getElementById('btn-modal-save');
     if (!saveBtn) return;
-    
+
     const origText = saveBtn.innerText;
 
     try {
@@ -327,7 +334,7 @@ async function saveItemChanges() {
             if (row) {
                 const brandEl = row.querySelector('.item-brand');
                 if (brandEl) brandEl.innerText = brand;
-                
+
                 const modelEl = row.querySelector('.item-model');
                 if (modelEl) modelEl.innerText = model;
 
@@ -345,7 +352,7 @@ async function saveItemChanges() {
 
             recalculateTotals();
             closeEditModal();
-            
+
             saveBtn.innerText = origText;
             saveBtn.disabled = false;
         } else {

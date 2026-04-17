@@ -102,9 +102,25 @@ function filterWarehouse() {
     const filter = searchInput.value.toLowerCase();
     const cards = document.getElementsByClassName('inventory-card');
     
+    let visibleQtyTotal = 0;
+
     for (let i = 0; i < cards.length; i++) {
         const text = cards[i].getAttribute('data-search') || "";
-        cards[i].style.display = text.toLowerCase().includes(filter) ? "" : "none";
+        if (text.toLowerCase().includes(filter)) {
+            cards[i].style.display = "";
+            const qtyPill = cards[i].querySelector('.qty-pill');
+            if (qtyPill) {
+                visibleQtyTotal += parseInt(qtyPill.innerText, 10) || 0;
+            }
+        } else {
+            cards[i].style.display = "none";
+        }
+    }
+    
+    // Update the total qty row if it exists
+    const totalQtyElem = document.getElementById('table-total-qty');
+    if (totalQtyElem) {
+        totalQtyElem.innerText = visibleQtyTotal.toLocaleString();
     }
 }
 
@@ -195,8 +211,8 @@ function resetWarehouseForm() {
 function downloadWarehouseCSV() {
     const cards = document.querySelectorAll('.inventory-card');
     
-    // Column Definitions based on the superset of supported specs
-    const headers = ["Location", "Brand", "Model", "Qty", "CPU", "GPU", "RAM", "Storage", "Battery", "Windows", "Series", "Gen", "Condition", "Notes"];
+    // Updated to match the specified B2B structure
+    const headers = ["Type", "Brand", "Model", "Series", "CPU / Gen", "Description", "Price", "QTY", "Total"];
     let csv = headers.map(h => `"${h}"`).join(",") + "\n";
     
     const sanitize = (val) => `"${(val || "").toString().trim().replace(/"/g, '""')}"`;
@@ -207,28 +223,25 @@ function downloadWarehouseCSV() {
         if (card.style.display !== 'none') {
             const specs = JSON.parse(card.getAttribute('data-specs') || '{}');
             
-            const loc = card.querySelector('.location-tag')?.innerText || '';
             const brand = card.getAttribute('data-brand') || '';
             const model = card.getAttribute('data-model') || '';
             const qtyElement = card.querySelector('.qty-pill');
             const qty = qtyElement ? qtyElement.innerText.trim() : '0';
             
-            // Map JSON keys to CSV columns (case-insensitive keys from JSON often)
+            // Map Warehouse specs to the simplified B2B columns
+            const cpuGen = (specs.cpu || "") + (specs.gen ? " (" + specs.gen + ")" : "");
+            const fullDesc = (specs.condition || "") + (specs.notes ? " - " + specs.notes : "");
+
             const rowData = [
-                sanitize(loc),
-                sanitize(brand),
-                sanitize(model),
-                sanitize(qty),
-                sanitize(specs.cpu || ""),
-                sanitize(specs.gpu || ""),
-                sanitize(specs.ram || ""),
-                sanitize(specs.storage || ""),
-                sanitize(specs.battery || ""),
-                sanitize(specs.windows || ""),
-                sanitize(specs.series || ""),
-                sanitize(specs.gen || ""),
-                sanitize(specs.condition || specs.Condition || ""),
-                sanitize(specs.notes || specs.Notes || "")
+                sanitize("Laptop"),               // Type
+                sanitize(brand),                 // Brand
+                sanitize(model),                 // Model
+                sanitize(specs.series || ""),    // Series
+                sanitize(cpuGen),                // CPU / Gen
+                sanitize(fullDesc),              // Description
+                "0.00",                          // Price (Not stored in warehouse)
+                sanitize(qty),                   // QTY
+                "0.00"                           // Total
             ];
             
             csv += rowData.join(",") + "\n";
