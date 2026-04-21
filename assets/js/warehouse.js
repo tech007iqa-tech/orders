@@ -219,12 +219,15 @@ function filterGateLocations() {
     let found = 0;
 
     for (let i = 0; i < items.length; i++) {
-        const locName = items[i].getAttribute('data-loc-name') || "";
+        const item = items[i];
+        const wrapper = item.closest('.loc-item-wrapper') || item;
+        const locName = item.getAttribute('data-loc-name') || "";
+        
         if (locName.includes(filter)) {
-            items[i].style.display = "";
+            wrapper.style.display = "";
             found++;
         } else {
-            items[i].style.display = "none";
+            wrapper.style.display = "none";
         }
     }
 
@@ -321,10 +324,18 @@ function resetWarehouseForm() {
  */
 function downloadWarehouseCSV() {
     const cards = document.querySelectorAll('.inventory-card');
+    const activeLocElem = document.querySelector('.loc-text');
+    const activeLoc = activeLocElem ? activeLocElem.innerText.trim() : 'Warehouse';
+    const isGlobal = activeLoc === 'GLOBAL';
+
+    // CSV Meta Header
+    let csv = `"Active Location","${activeLoc} 📍",,,,,,,\n\n`;
 
     // Updated to match the specified B2B structure
     const headers = ["Type", "Brand", "Model", "Series", "CPU / Gen", "Description", "Price", "QTY", "Total"];
-    let csv = headers.map(h => `"${h}"`).join(",") + "\n";
+    if (isGlobal) headers.unshift("Location");
+
+    csv += headers.map(h => `"${h}"`).join(",") + "\n";
 
     const sanitize = (val) => `"${(val || "").toString().trim().replace(/"/g, '""')}"`;
     let count = 0;
@@ -338,6 +349,9 @@ function downloadWarehouseCSV() {
             const model = card.getAttribute('data-model') || '';
             const qtyElement = card.querySelector('.qty-pill');
             const qty = qtyElement ? qtyElement.innerText.trim() : '0';
+            
+            const locTag = card.querySelector('.location-tag');
+            const itemLoc = locTag ? locTag.innerText.trim() : '';
 
             // Map Warehouse specs to the simplified B2B columns
             let cpuGen = (specs.cpu || "") + (specs.gen ? " (" + specs.gen + ")" : "");
@@ -346,8 +360,14 @@ function downloadWarehouseCSV() {
             }
             const fullDesc = (specs.condition || "") + (specs.notes ? " - " + specs.notes : "");
 
+            const sectorTheme = card.getAttribute('data-sector-theme') || 'Laptops';
+            let itemType = "Laptop";
+            if (sectorTheme === 'Desktops') itemType = "Desktop";
+            else if (sectorTheme === 'Gaming') itemType = "Gaming";
+            else if (sectorTheme === 'Electronics') itemType = "Electronics";
+
             const rowData = [
-                sanitize("Laptop"),               // Type
+                sanitize(itemType),              // Type
                 sanitize(brand),                 // Brand
                 sanitize(model),                 // Model
                 sanitize(specs.series || ""),    // Series
@@ -357,6 +377,8 @@ function downloadWarehouseCSV() {
                 sanitize(qty),                   // QTY
                 "0.00"                           // Total
             ];
+
+            if (isGlobal) rowData.unshift(sanitize(itemLoc));
 
             csv += rowData.join(",") + "\n";
             count++;

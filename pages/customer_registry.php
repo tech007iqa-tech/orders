@@ -80,8 +80,28 @@ try {
         <p class="subtitle">Select a customer below or register a new one to begin.</p>
     </header>
 
-    <div class="registry-actions">
-        <a href="index.php?view=register" class="btn-register">+ Register New Customer</a>
+    <div class="registry-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+        <a href="index.php?view=register" class="btn-register" style="margin:0;">+ Register New Customer</a>
+        
+        <div class="sort-wrapper" style="display: flex; align-items: center; gap: 10px;">
+            <label for="cust-sort" style="font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Sort By:</label>
+            <select id="cust-sort" onchange="window.location.href='index.php?sort=' + this.value" style="height: 42px; border-radius: 12px; border: 1px solid #ddd; padding: 0 15px; font-weight: 700; background: white; cursor: pointer;">
+                <?php
+                    $current_sort = $_GET['sort'] ?? $_SESSION['cust_sort_pref'] ?? 'date_desc';
+                    $options = [
+                        'date_desc' => '📅 Date (Recent First)',
+                        'date_asc'  => '📅 Date (Oldest First)',
+                        'name'      => '🔤 Name (A-Z)',
+                        'orders'    => '📦 Total Orders',
+                        'spent'     => '💰 Amount Spent'
+                    ];
+                    foreach ($options as $val => $label) {
+                        $selected = ($current_sort === $val) ? 'selected' : '';
+                        echo "<option value='{$val}' {$selected}>{$label}</option>";
+                    }
+                ?>
+            </select>
+        </div>
     </div>
 
     <div class="search-wrapper">
@@ -91,11 +111,18 @@ try {
 
     <div class="registry-list" id="customer-list">
         <?php
-        $stmt = $conn->query("SELECT * FROM customers ORDER BY company_name ASC");
+        // Persist sort preference in session
+        if (isset($_GET['sort'])) {
+            $_SESSION['cust_sort_pref'] = $_GET['sort'];
+        }
+        $sort_param = $_GET['sort'] ?? $_SESSION['cust_sort_pref'] ?? 'date_desc';
+        
+        // Fetch All Customers
+        $stmt = $conn->query("SELECT * FROM customers");
         $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Enrich with order data for sorting
         foreach($customers as &$c) {
-            // Enhanced order query to get totals
             $stmt_o = $conn_orders->prepare("
                 SELECT o.order_id, o.created_at, o.status,
                        (SELECT SUM(quantity) FROM items WHERE order_id = o.order_id) as total_qty,
@@ -107,23 +134,50 @@ try {
             $stmt_o->execute([$c['customer_id']]);
             $c['orders_list'] = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
             
-            // Calculate specific counts and total value
             $completed_count = 0;
             $active_count = 0;
             $lifetime_value = 0;
-            foreach ($c['orders_list'] as $o) {
-                if (in_array(strtolower($o['status']), ['finalized', 'paid', 'dispatched'])) {
-                    $completed_count++;
-                } else {
-                    $active_count++;
+            $last_date = '0000-00-00 00:00:00';
+
+            if (!empty($c['orders_list'])) {
+                $last_date = $c['orders_list'][0]['created_at'];
+                foreach ($c['orders_list'] as $o) {
+                    if (in_array(strtolower($o['status']), ['finalized', 'paid', 'dispatched'])) {
+                        $completed_count++;
+                    } else {
+                        $active_count++;
+                    }
+                    $lifetime_value += ($o['total_value'] ?? 0);
                 }
-                $lifetime_value += ($o['total_value'] ?? 0);
             }
+
             $c['completed_count'] = $completed_count;
             $c['active_count'] = $active_count;
             $c['lifetime_value'] = $lifetime_value;
+            $c['last_order_date'] = $last_date;
+            $c['total_orders'] = count($c['orders_list']);
         }
         unset($c);
+
+        // Advanced Sorting Logic
+        usort($customers, function($a, $b) use ($sort_param) {
+            switch ($sort_param) {
+                case 'name':
+                    return strcasecmp($a['company_name'], $b['company_name']);
+                case 'orders':
+                    return $b['total_orders'] <=> $a['total_orders'];
+                case 'spent':
+                    return $b['lifetime_value'] <=> $a['lifetime_value'];
+                case 'date_desc':
+                    return strcmp($b['last_order_date'], $a['last_order_date']);
+                case 'date_asc':
+                default:
+                    // If no orders, push to end (or beginning depending on interpretation)
+                    if ($a['last_order_date'] === '0000-00-00 00:00:00') return 1;
+                    if ($b['last_order_date'] === '0000-00-00 00:00:00') return -1;
+                    return strcmp($a['last_order_date'], $b['last_order_date']);
+            }
+        });
 
         if (count($customers) > 0) {
             foreach($customers as $c) {

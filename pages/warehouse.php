@@ -18,6 +18,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         exit();
     }
 
+    if ($_POST['action'] === 'rename_zone' && isset($_POST['old_loc']) && isset($_POST['new_loc'])) {
+        $old_loc = $_POST['old_loc'];
+        $new_loc = trim($_POST['new_loc']);
+        
+        if (!empty($new_loc)) {
+            $stmt = $conn_wh->prepare("UPDATE inventory SET location_code = ? WHERE location_code = ?");
+            $stmt->execute([$new_loc, $old_loc]);
+            header("Location: index.php?view=warehouse&sector=" . urlencode($selected_sector) . "&msg=zone_renamed");
+            exit();
+        }
+    }
+
     if ($_POST['action'] === 'add_inventory' || $_POST['action'] === 'edit_inventory') {
         $brand = $_POST['brand'];
         $model = $_POST['model'];
@@ -135,10 +147,13 @@ if ($selected_loc) {
                     
                     <div class="loc-grid" id="gate-loc-grid">
                         <?php foreach ($existing_locs as $loc): ?>
-                            <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>&loc=<?= urlencode($loc) ?>" class="loc-item gate-loc-item" data-loc-name="<?= htmlspecialchars(strtolower($loc)) ?>">
-                                <span class="loc-icon">📦</span>
-                                <span class="loc-name"><?= htmlspecialchars($loc) ?></span>
-                            </a>
+                            <div class="loc-item-wrapper" style="position:relative;">
+                                <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>&loc=<?= urlencode($loc) ?>" class="loc-item gate-loc-item" data-loc-name="<?= htmlspecialchars(strtolower($loc)) ?>">
+                                    <span class="loc-icon">📦</span>
+                                    <span class="loc-name"><?= htmlspecialchars($loc) ?></span>
+                                </a>
+                                <button type="button" onclick="openRenameModal('<?= htmlspecialchars($loc) ?>')" class="btn-rename-zone" style="position:absolute; top:5px; right:5px; background:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:0.7rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); opacity:0; transition:0.2s;">✏️</button>
+                            </div>
                         <?php endforeach; ?>
                         
                         <div class="loc-item new-loc">
@@ -214,7 +229,7 @@ if ($selected_loc) {
                 <table class="inventory-table">
                     <thead>
                         <tr>
-                            <th class="col-type">Type</th>
+                            <th class="col-type">Location</th>
                             <th class="col-main">Make/Model</th>
                             <th class="col-qty">QTY</th>
                             <?php if ($selected_sector === 'Laptops'): ?>
@@ -376,6 +391,7 @@ if ($selected_loc) {
                                 if($_GET['msg'] === 'added') echo "Stock registered successfully!";
                                 elseif($_GET['msg'] === 'updated') echo "Entry updated successfully!";
                                 elseif($_GET['msg'] === 'deleted') echo "Entry removed from stock.";
+                                elseif($_GET['msg'] === 'zone_renamed') echo "Working zone renamed successfully!";
                             ?>
                         </span>
                         <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:#15803d; cursor:pointer; font-size:1.2rem; line-height:1; padding:0 5px; opacity:0.5;">&times;</button>
@@ -428,7 +444,7 @@ if ($selected_loc) {
                             </div>
                         <?php elseif ($selected_sector === 'Gaming'): ?>
                             <div class="form-group" style="margin-bottom: 10px;">
-                                <label>Category</label>
+                                <label for="wh-gaming-cat">Category</label>
                                 <select name="gaming_category" id="wh-gaming-cat" onchange="toggleGamingFields()" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px; font-weight:700;">
                                     <option value="PC">PC / Custom Build</option>
                                     <option value="Consoles">Consoles</option>
@@ -441,19 +457,19 @@ if ($selected_loc) {
                             <div id="wh-gaming-pc-fields">
                                 <div style="display: flex; gap: 10px; margin-bottom: 10px;">
                                     <div class="form-group" style="flex: 1;">
-                                        <label>CPU</label>
-                                        <input type="text" name="cpu" placeholder="Ryzen 7" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
+                                        <label for="wh-gaming-pc-cpu">CPU</label>
+                                        <input type="text" id="wh-gaming-pc-cpu" name="cpu" placeholder="Ryzen 7" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                                     </div>
                                     <div class="form-group" style="flex: 1;">
-                                        <label>GPU</label>
-                                        <input type="text" name="gpu" placeholder="RTX 3070" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
+                                        <label for="wh-gaming-pc-gpu">GPU</label>
+                                        <input type="text" id="wh-gaming-pc-gpu" name="gpu" placeholder="RTX 3070" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Specific Specs for everything else -->
                             <div class="form-group" style="margin-bottom: 10px;">
-                                <label id="wh-gaming-spec-label">Specs / Series</label>
+                                <label for="wh-series" id="wh-gaming-spec-label">Specs / Series</label>
                                 <input type="text" name="series" list="series-options" id="wh-series" placeholder="Series / Edition" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                                 <datalist id="series-options"></datalist>
                                 <div id="wh-gaming-extra-specs" style="display: flex; gap: 10px; margin-top:5px;">
@@ -467,12 +483,12 @@ if ($selected_loc) {
                             </div>
                         <?php elseif ($selected_sector === 'Electronics'): ?>
                             <div class="form-group" style="margin-bottom: 10px;">
-                                <label>Device Type</label>
-                                <input type="text" name="type" placeholder="Charger / Hub" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
+                                <label for="wh-elec-type">Device Type</label>
+                                <input type="text" id="wh-elec-type" name="type" placeholder="Charger / Hub" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                             </div>
                             <div class="form-group" style="margin-bottom: 10px;">
-                                <label>Specs / Condition</label>
-                                <input type="text" name="voltage" placeholder="65W / 19.5V" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
+                                <label for="wh-elec-spec">Specs / Condition</label>
+                                <input type="text" id="wh-elec-spec" name="voltage" placeholder="65W / 19.5V" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                                 <input type="text" name="condition" placeholder="New" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px; margin-top:5px;">
                             </div>
                         <?php elseif ($selected_sector === 'Desktops'): ?>
@@ -523,7 +539,45 @@ if ($selected_loc) {
 </div>
 
 <!-- warehouse.js is now loaded globally in index.php -->
+<!-- Rename Zone Modal -->
+<div id="rename-modal" class="modal-overlay no-print" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:1000; align-items:center; justify-content:center;" onclick="if(event.target===this) closeRenameModal()">
+    <div style="background:white; border-radius:20px; width:90%; max-width:400px; padding:25px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
+        <h3 style="font-weight:900; margin-bottom:15px;">✏️ Rename Working Zone</h3>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">All items currently in this zone will be moved to the new name.</p>
+        <form method="POST">
+            <input type="hidden" name="action" value="rename_zone">
+            <input type="hidden" name="old_loc" id="rename-old-loc">
+            <div class="form-group" style="margin-bottom:20px;">
+                <label for="rename-new-loc" style="display:block; font-size:0.7rem; font-weight:800; text-transform:uppercase; margin-bottom:5px;">New Zone Name</label>
+                <input type="text" name="new_loc" id="rename-new-loc" required style="width:100%; height:44px; border-radius:10px; border:1px solid #ddd; padding:0 12px; font-weight:700;">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button type="button" onclick="closeRenameModal()" style="flex:1; height:44px; border-radius:10px; border:1px solid #ddd; background:none; font-weight:800; cursor:pointer;">Cancel</button>
+                <button type="submit" style="flex:1; height:44px; border-radius:10px; border:none; background:var(--text-main); color:white; font-weight:800; cursor:pointer;">Rename Zone</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+    function openRenameModal(loc) {
+        document.getElementById('rename-old-loc').value = loc;
+        document.getElementById('rename-new-loc').value = loc;
+        document.getElementById('rename-modal').style.display = 'flex';
+        document.getElementById('rename-new-loc').focus();
+    }
+    function closeRenameModal() {
+        document.getElementById('rename-modal').style.display = 'none';
+    }
+
+    // Add CSS for the rename button visibility on hover
+    const style = document.createElement('style');
+    style.textContent = `
+        .loc-item-wrapper:hover .btn-rename-zone { opacity: 1 !important; }
+        .btn-rename-zone:hover { transform: scale(1.1); background: #f8fafc !important; }
+    `;
+    document.head.appendChild(style);
+
     // Ensure gaming fields are correctly toggled on load if Gaming is selected
     if (typeof toggleGamingFields === 'function') toggleGamingFields();
 </script>

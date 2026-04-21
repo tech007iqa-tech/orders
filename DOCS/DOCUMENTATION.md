@@ -8,11 +8,14 @@ A robust, high-performance order procurement application designed for building a
 
 ### 1. Active Customer Registry Dashboard
 Manage the entire B2B database from a high-performance centralized interface.
-- **Dual-Pane Independent Scrolling**: A dashboard-style layout where the customer list (left) and detail profile (right) scroll independently, the UI is optimized to prevent content clipping on all viewport sizes.
+- **Dual-Pane Independent Scrolling**: Optimized layout for all viewport sizes.
+- **Intelligent Sorting & Persistence**: 
+    - Sort customers by **Name**, **Total Orders**, **Lifetime Value**, or **Last Order Date**.
+    - **Session Memory**: The system remembers your sort preference as you navigate.
+    - **Default View**: Optimized to show **Recent Purchases** first.
 - **Live Business Intelligence**:
-    - **Lifetime Value (LTV)**: Automatically calculated total gross value from all finalized batches.
-    - **Last Order Tracking**: At-a-glance visibility of the most recent batch date for every account.
-    - **Order History**: Clean breakdown of active vs. completed batches with deep links to their respective manifests.
+    - **Lifetime Value (LTV)**: Automatically calculated total gross value.
+    - **Order History**: active vs. completed batches with deep links.
 
 ### 2. Batch Builder (Order Entry) — `pages/new_order.php`
 The central tool for adding hardware to active orders.
@@ -35,12 +38,17 @@ The final stage before manifest delivery.
   - 🖨 **Print Manifest**: Professional PDF-ready layout with approval signature lines.
   - 📊 **CSV Export**: Clean, Excel-ready data distribution with separate columns for Brand and Model.
 
-### 4. ODT Label Generation — `generate_odt.php`
-A standalone PHP label printer requiring zero external dependencies.
-- **No ZipArchive needed**: Uses the Flat OpenDocument (FODT) XML format — a single-file XML structure that LibreOffice and compatible word processors open natively.
-- **2"×1" Page Dimensions**: Hardcoded for thermal label printers.
-- **Typography**: 16pt Times New Roman bold title (wrapped across up to 3 lines) + 7pt Arial bold technical specs.
-- **Triggered from**: The Edit Item modal in `checkout.php`.
+### 4. Warehouse & Inventory Control — `pages/warehouse.php`
+- **Working Zone Management**: 
+    - Organizes stock into shelves/zones (location codes).
+    - **Rename Zone**: Bulk update all inventory items when a shelf is renamed via the Gate interface.
+- **Sector-Specific Logic**: Tailored forms for Laptops, Gaming, Desktops, and Electronics.
+- **Enhanced CSV Export**: 
+    - **Contextual Headers**: Includes the active location and a 📍 pin icon in the file header.
+    - **Smart Mapping**: Automatically sets the "Type" column based on the sector (Desktop, Gaming, etc.).
+    - **Global View Column**: Adds a "Location" column when exporting from the Global Warehouse view.
+
+### 5. ODT Label Generation — `generate_odt.php`
 
 ### 6. Order Transfer System
 A specialized utility for fixing assignment errors without manual data entry.
@@ -60,10 +68,12 @@ Administrative control panel for system-wide configuration.
 
 | Component | Technology |
 | :--- | :--- |
-| **Backend** | PHP 8.x (XAMPP Environment) |
-| **Database** | SQLite 3 (Distributed: `customers.db`, `orders.db`, `users.db`) |
-| **Frontend Logic** | Vanilla JavaScript — all checkout logic lives in `assets/js/checkout.js` |
+| **Backend** | PHP 8.x (XAMPP Environment) with scalable Route Mapping |
+| **Database** | SQLite 3 (Distributed: `customers.db`, `orders.db`, `users.db`, `warehouse.db`) |
+| **API Layer** | Dedicated JSON endpoints in `/api/` for decoupled business logic |
+| **Frontend Logic** | Vanilla JavaScript (ES6+) with secure JSON state management |
 | **Styling** | Modern Vanilla CSS with CSS Variables, glassmorphism, and mobile-first flex layouts |
+| **Cache Busting**| Automated dynamic versioning using `filemtime()` for all JS/CSS assets |
 
 ### Mobile-First & iOS Safari Optimizations
 - **16px Input Enforcement**: All modal inputs use `font-size: 16px !important` to prevent iOS Safari auto-zoom on focus.
@@ -71,21 +81,27 @@ Administrative control panel for system-wide configuration.
 - **Momentum Scrolling**: Modal content uses `-webkit-overflow-scrolling: touch` for native-feel scrolling when the keyboard appears.
 - **Clipboard Fallback**: Copy-to-clipboard uses `navigator.clipboard` with a hidden `<textarea>` fallback for non-HTTPS contexts (older Safari).
 
-### JS Architecture
-- **PHP Data Injection (inline)**: `checkout.php` injects `rawItems`, `customerName`, `orderID`, and `orderDate` as `var` variables to ensure they are available on the `window` object for the external script.
-- **External Logic File**: All function definitions live in `assets/js/checkout.js` for clean separation of concerns and browser caching.
+### JS Architecture & State Management
+- **Decoupled JSON State**: The application no longer pollutes the global `window` namespace with PHP variables. Instead, state is injected into the DOM as `application/json` script blocks and parsed by dedicated getter functions in JS (e.g., `getCheckoutState()`).
+- **Scalable Routing**: `index.php` utilizes a centralized route mapping array that manages both page inclusions and contextual CSS loading, eliminating large conditional blocks.
+- **External Logic Modules**: All functional logic is encapsulated in external modules (e.g., `assets/js/checkout.js`) which are versioned dynamically via PHP `filemtime()` to ensure instant cache updates upon modification.
+- **API Integration**: Core actions like order status updates and transfers are handled via asynchronous `fetch` calls to dedicated PHP scripts in the `/api/` directory.
 
 ---
 
 ## 📂 Project Structure
 
 ```bash
+├── api/               # Decoupled JSON API endpoints
+│   ├── get_warehouse_stock.php
+│   ├── update_order_status.php
+│   └── transfer_order.php
 ├── assets/
-│   ├── db/            # SQLite databases (Critical Data — gitignored)
+│   ├── db/            # SQLite databases (Blocked from public access via .htaccess)
 │   ├── js/
 │   │   ├── checkout.js   # All checkout manifest JS logic
 │   │   ├── warehouse.js  # Warehouse inventory logic
-│   │   └── new_order.js  # Batch builder JS (compiled from TS)
+│   │   └── new_order.js  # Batch builder JS logic
 │   ├── styles/        # Per-page CSS files
 │   └── ts/            # TypeScript source (Legacy/Dev reference)
 ├── core/              # Authentication and shared logic

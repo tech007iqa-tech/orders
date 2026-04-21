@@ -6,16 +6,10 @@ A modern, responsive web application for managing warehouse hardware inventory a
 
 ## ✨ Key Features
 
+-   **Intelligent Customer Sorting**: Sort the registry by Date (Recent/Oldest), Name, Total Orders, or LTV, with session-based memory.
+-   **Working Zone Management**: Organize stock by shelves/zones with the ability to **Bulk Rename** entire locations instantly.
+-   **Enhanced Warehouse Exports**: CSVs now include active location headers (📍) and smart category mapping (Desktop, Gaming, etc.).
 -   **B2B Manifest Generation**: Creates final, professional billing summaries with auto-calculated totals and unit prices.
--   **CSV Portable Exports**: Instant "IQA Metal B2B Purchase Form" export with dedicated columns for Brand and Model, compatible with Excel and LibreOffice.
--   **ODT Thermal Label Printing**: Generate compliant 2"×1" `.odt` labels from the Edit Item modal — no external dependencies required.
--   **Fulfillment Tracking**: A Global Batch Registry to track orders through lifecycle states (Active, Pending, Paid, Finalized).
--   **Live Search Everywhere**: Flexible client-side search bars in the Order Builder Summary, Checkout Manifest, and Batch Registry.
--   **Interactive Checkout Modal**: Click any manifest row to open a premium glassmorphism Edit Item modal with AJAX **Live Sync** (no page reload) and Print Label support.
--   **Inline Quick-Edit**: Pencil icon on the Order Summary allows direct Qty/Price edits with smart page-anchor scrolling on reload.
--   **Technical CPU Tracking**: Specialized hardware categorization from 2nd Gen through 12th Gen for high-volume entry.
--   **Order Transfer Power**: Easily fix mistakes by moving batches between customer accounts with a single click — available in both the Checkout manifest and the Global Batch Registry.
--   **Customer Registry**: A dual-pane independent scrolling layout for managing customer accounts, featuring visual avatars and **Last Order Date** tracking.
 -   **Anti-Refresh Pattern (PRG)**: Implements the **Post/Redirect/Get** pattern for zero-error form submissions.
 -   **Zero-Config Backend**: Utilizes **SQLite** — completely portable, no server setup required.
 -   **iOS Safari Optimized**: `16px` input enforcement, `100dvh` viewport fix, `-webkit-overflow-scrolling: touch`, and clipboard fallback.
@@ -26,18 +20,21 @@ A modern, responsive web application for managing warehouse hardware inventory a
 
 | Layer | Technology |
 | :--- | :--- |
-| **Backend** | PHP 8+ with PDO (SQLite Driver) |
-| **Database** | SQLite v3 (`customers.db`, `orders.db`) |
+| **Backend** | PHP 8.x with Scalable Route Mapping |
+| **Database** | SQLite v3 (Multiple DB Architecture: `customers`, `orders`, `users`, `warehouse`) |
+| **Security** | `.htaccess` protected SQLite databases & Session-guarded routes |
 | **Frontend UI** | Modern HTML5 & Vanilla CSS (glassmorphism, CSS Variables) |
-| **Logic** | Vanilla JavaScript — split between `checkout.js` and `new_order.js` |
-| **State** | PHP Sessions for secure messaging and PRG flow |
+| **Logic** | Vanilla JavaScript (ES6+) with dedicated /api/ AJAX endpoints |
+| **Cache Busting**| Automated dynamic versioning using `filemtime()` for all JS/CSS assets |
+| **State** | PHP Sessions + Secure JSON DOM injection (no global namespace pollution) |
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-├── index.php                   # Main application entry point & router
+├── api/                        # Decoupled JSON API endpoints for status updates & transfers
+├── index.php                   # Scalable application router & entry point
 ├── checkout.php                # Finalized B2B manifest, modal editor & export hub
 ├── generate_odt.php            # 2×1 Thermal Label ODT generator (Flat XML, no ZipArchive)
 ├── pages/
@@ -97,9 +94,10 @@ A modern, responsive web application for managing warehouse hardware inventory a
 
 ## 🔧 Maintenance
 
--   **Database**: The `.db` files are in `assets/db/`. Open with any SQLite browser for manual audit.
+-   **Database**: The `.db` files are in `assets/db/`, which is protected from public HTTP access via `.htaccess`. Open with any SQLite browser for manual audit.
 -   **Styling**: All design tokens (colors, spacing, shadows) are CSS Variables in `:root` inside `style.css`.
--   **JavaScript**: Checkout logic is fully externalized to `assets/js/checkout.js`. PHP data is injected inline as `var` variables (ensuring `window` scope access) before the external script loads.
+-   **JavaScript**: Logic is modularized. State is passed from PHP to JS via secure JSON blobs parsed by specific modules (e.g., `checkout.js`), ensuring no global variable collisions.
+-   **Routing**: `index.php` handles routing through a centralized route map, making the addition of new views simple and clean.
 -   **Label Printing**: `generate_odt.php` produces Flat OpenDocument XML. If labels don't open, ensure LibreOffice is set as the default `.odt` handler.
 
 ---
