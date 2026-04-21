@@ -3,6 +3,17 @@
  * Managed with modern ES6+ standards and safe type-like documentation.
  */
 
+/* ============================================================
+   0. State Management
+   ============================================================ */
+let __checkoutState = null;
+function getCheckoutState() {
+    if (__checkoutState) return __checkoutState;
+    const el = document.getElementById('checkout-state');
+    __checkoutState = el ? JSON.parse(el.textContent) : {};
+    return __checkoutState;
+}
+
 /**
  * @typedef {Object} ManifestItem
  * @property {number} id
@@ -67,9 +78,10 @@ async function handlePrintManifest() {
  * Optimized to pull directly from the active verification table.
  */
 function downloadCSV() {
-    const cust = window.customerName || 'Account';
-    const ord = window.orderID || 'ORD-000';
-    const date = window.orderDate || '';
+    const state = getCheckoutState();
+    const cust = state.customerName || 'Account';
+    const ord = state.orderID || 'ORD-000';
+    const date = state.orderDate || '';
 
     // Header Template
     let csv = `"IQA Metal B2B Purchase Form",,,,,,,,\n\n`;
@@ -234,7 +246,8 @@ function copyEntry(btn) {
  */
 function openEditModal(index) {
     // Robust check for injected data
-    const items = window.rawItems || (typeof rawItems !== 'undefined' ? rawItems : null);
+    const state = getCheckoutState();
+    const items = state.rawItems || null;
     const item = items ? items[index] : null;
 
     if (!item) {
@@ -329,8 +342,9 @@ async function saveItemChanges() {
             const price = parseFloat(getVal('modal-price')) || 0;
 
             // 1. Update the JS data source
-            if (window.rawItems && window.rawItems[idx]) {
-                Object.assign(window.rawItems[idx], {
+            const state = getCheckoutState();
+            if (state.rawItems && state.rawItems[idx]) {
+                Object.assign(state.rawItems[idx], {
                     brand, model, series, cpu, description: desc,
                     quantity: parseInt(qty), unit_price: price
                 });

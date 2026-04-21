@@ -2,6 +2,14 @@
  * IQA Metal — Warehouse Control Logic
  */
 
+let __warehouseState = null;
+function getWarehouseState() {
+    if (__warehouseState) return __warehouseState;
+    const el = document.getElementById('warehouse-state');
+    __warehouseState = el ? JSON.parse(el.textContent) : {};
+    return __warehouseState;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initWarehouseDatalists();
     
@@ -89,9 +97,10 @@ function initWarehouseDatalists() {
     const seriesDl = document.getElementById('series-options');
 
     // Determine target inventory based on active sector
+    const state = getWarehouseState();
     let targetInventory = IQA_LaptopInventory;
-    if (window.activeSector === 'Gaming') targetInventory = IQA_GamingInventory;
-    if (window.activeSector === 'Desktops') targetInventory = IQA_LaptopInventory;
+    if (state.activeSector === 'Gaming') targetInventory = IQA_GamingInventory;
+    if (state.activeSector === 'Desktops') targetInventory = IQA_LaptopInventory;
     // For general/electronics we might still use a fall-back or merged list if needed
     // but for now, we follow the split.
 
@@ -363,7 +372,8 @@ function downloadWarehouseCSV() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     const dateStamp = new Date().toISOString().slice(0, 10);
-    const sector = (window.activeSector || "Warehouse").replace(/\s+/g, '_');
+    const state = getWarehouseState();
+    const sector = (state.activeSector || "Warehouse").replace(/\s+/g, '_');
 
     link.href = url;
     link.download = `IQA_Inventory_${sector}_${dateStamp}.csv`;

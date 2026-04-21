@@ -1,6 +1,6 @@
-# 🚀 IQA Dynamic Order & Customer Manager
+# 🏬 IQA Warehouse Inventory & Order Manager
 
-A modern, responsive web application for managing hardware inventory and customer orders. Built with a focus on speed, security, and a premium "app-like" user experience — fully optimized for iOS Safari and desktop.
+A modern, responsive web application for managing warehouse hardware inventory and customer orders. Built with a focus on speed, security, and a premium "app-like" user experience — fully optimized for iOS Safari and desktop.
 
 ---
 
@@ -9,13 +9,13 @@ A modern, responsive web application for managing hardware inventory and custome
 -   **B2B Manifest Generation**: Creates final, professional billing summaries with auto-calculated totals and unit prices.
 -   **CSV Portable Exports**: Instant "IQA Metal B2B Purchase Form" export with dedicated columns for Brand and Model, compatible with Excel and LibreOffice.
 -   **ODT Thermal Label Printing**: Generate compliant 2"×1" `.odt` labels from the Edit Item modal — no external dependencies required.
--   **Fulfillment Tracking**: A Global Batch Registry to track orders through lifecycle states (Active, Pending, Paid, Dispatched, Finalized).
+-   **Fulfillment Tracking**: A Global Batch Registry to track orders through lifecycle states (Active, Pending, Paid, Finalized).
 -   **Live Search Everywhere**: Flexible client-side search bars in the Order Builder Summary, Checkout Manifest, and Batch Registry.
 -   **Interactive Checkout Modal**: Click any manifest row to open a premium glassmorphism Edit Item modal with AJAX **Live Sync** (no page reload) and Print Label support.
 -   **Inline Quick-Edit**: Pencil icon on the Order Summary allows direct Qty/Price edits with smart page-anchor scrolling on reload.
 -   **Technical CPU Tracking**: Specialized hardware categorization from 2nd Gen through 12th Gen for high-volume entry.
 -   **Order Transfer Power**: Easily fix mistakes by moving batches between customer accounts with a single click — available in both the Checkout manifest and the Global Batch Registry.
--   **Dashboard CRM Revamp**: A dual-pane independent scrolling layout for the [Customer Registry](#), featuring visual avatars, **Lifetime Value** stats, and **Last Order Date** tracking.
+-   **Customer Registry**: A dual-pane independent scrolling layout for managing customer accounts, featuring visual avatars and **Last Order Date** tracking.
 -   **Anti-Refresh Pattern (PRG)**: Implements the **Post/Redirect/Get** pattern for zero-error form submissions.
 -   **Zero-Config Backend**: Utilizes **SQLite** — completely portable, no server setup required.
 -   **iOS Safari Optimized**: `16px` input enforcement, `100dvh` viewport fix, `-webkit-overflow-scrolling: touch`, and clipboard fallback.
@@ -45,6 +45,7 @@ A modern, responsive web application for managing hardware inventory and custome
 │   ├── new_customer.php        # Detailed customer registration module
 │   ├── new_order.php           # Core hardware intake, search & inline summary editing
 │   ├── orders.php              # Global batch fulfillment registry
+│   ├── warehouse.php           # Warehouse stock management and inventory
 │   └── settings.php           # Admin controls, staff management, maintenance tools
 ├── core/
 │   ├── auth.php                # Session guard
@@ -55,10 +56,12 @@ A modern, responsive web application for managing hardware inventory and custome
 │   │   ├── style.css           # Universal design system tokens & base styles
 │   │   ├── checkout.css        # Manifest layout, modal animations & iOS fixes
 │   │   ├── orders.css          # Batch registry & card grid styles
+│   │   ├── warehouse.css       # Warehouse UI and table styles
 │   │   ├── customer_registry.css # Account list & sidebar styles
 │   │   └── new_order.css       # Batch builder specific styling
 │   ├── js/
 │   │   ├── checkout.js         # All checkout manifest JS logic (externalized)
+│   │   ├── warehouse.js        # Warehouse inventory logic
 │   │   └── new_order.js        # Hardware inventory & UI population logic
 │   ├── ts/                     # TypeScript source (legacy/dev reference)
 │   └── db/

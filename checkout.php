@@ -132,8 +132,8 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Order Checkout - IQA</title>
-    <link rel="stylesheet" href="assets/styles/style.css?v=1.2">
-    <link rel="stylesheet" href="assets/styles/checkout.css?v=1.2">
+    <link rel="stylesheet" href="assets/styles/style.css?v=<?= filemtime('assets/styles/style.css') ?>">
+    <link rel="stylesheet" href="assets/styles/checkout.css?v=<?= filemtime('assets/styles/checkout.css') ?>">
     <link rel="icon" type="image/png" href="assets/icon/smart-home-sensor-wifi-black-outline-25276_1024.png">
 </head>
 <body style="flex-direction: column; background: #f8fafc;">
@@ -256,19 +256,18 @@ try {
             </div>
         </form>
 
-        <script>
-        // PHP-injected data — must stay inline so checkout.js can reference them
-        var rawItems    = <?= json_encode($items, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-        var customerName = <?= json_encode($customer['company_name'] ?? 'Account') ?>;
-        var orderID      = <?= json_encode($active_order_id) ?>;
-        var orderDate    = <?= json_encode(date('M d, Y')) ?>;
-
-        console.log("Manifest Sync Initiated.");
-        console.log("Items Count:", rawItems.length);
-        console.log("Customer:", customerName);
-        console.log("Order ID:", orderID);
+        <script id="checkout-state" type="application/json">
+        <?= json_encode([
+            'rawItems' => $items,
+            'customerName' => $customer['company_name'] ?? 'Account',
+            'orderID' => $active_order_id,
+            'orderDate' => date('M d, Y')
+        ], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>
         </script>
-        <script src="assets/js/checkout.js?v=1.4"></script>
+        <script>
+        console.log("Manifest Sync Initiated.");
+        </script>
+        <script src="assets/js/checkout.js?v=<?= filemtime('assets/js/checkout.js') ?>"></script>
 
         <!-- Final Manifest Approval (Print Exclusive) -->
         <div class="manifest-print-footer print-only">

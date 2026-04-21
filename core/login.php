@@ -65,8 +65,8 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | IQA Metal Portal</title>
-    <link rel="stylesheet" href="../assets/styles/style.css">
-    <link rel="stylesheet" href="../assets/styles/login.css">
+    <link rel="stylesheet" href="../assets/styles/style.css?v=<?= filemtime('../assets/styles/style.css') ?>">
+    <link rel="stylesheet" href="../assets/styles/login.css?v=<?= filemtime('../assets/styles/login.css') ?>">
     <link rel="icon" type="image/png" href="../assets/icon/smart-home-sensor-wifi-black-outline-25276_1024.png">
 </head>
 <body class="login-body">

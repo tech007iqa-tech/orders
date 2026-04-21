@@ -18,22 +18,35 @@
     </noscript>
 
     <!-- Primary Stylesheet (LCP Priority) -->
-    <link rel="stylesheet" href="assets/styles/style.css?v=1.1">
+    <link rel="stylesheet" href="assets/styles/style.css?v=<?= filemtime('assets/styles/style.css') ?>">
 
-    <!-- Conditional Style Discovery (Avoids Chaining) -->
+    <!-- Conditional Style Discovery -->
     <?php
-        $view = $_GET['view'] ?? '';
-        $v = "1.2"; // Incremented version for cache busting
-        if (isset($_GET['customer_id'])) echo '<link rel="stylesheet" href="assets/styles/new_order.css?v='.$v.'">';
-        if ($view === 'orders') echo '<link rel="stylesheet" href="assets/styles/orders.css?v='.$v.'">';
-        if ($view === 'warehouse') echo '<link rel="stylesheet" href="assets/styles/warehouse.css?v='.$v.'">';
-        if ($view === 'register' || ($view === '' && !isset($_GET['customer_id']))) echo '<link rel="stylesheet" href="assets/styles/customer_registry.css?v='.$v.'">';
+        $view = $_GET['view'] ?? 'default';
+        $is_new_order = isset($_GET['customer_id']);
+        
+        $routes = [
+            'register'  => ['page' => 'pages/new_customer.php',     'css' => 'customer_registry.css'],
+            'orders'    => ['page' => 'pages/orders.php',           'css' => 'orders.css'],
+            'warehouse' => ['page' => 'pages/warehouse.php',        'css' => 'warehouse.css'],
+            'settings'  => ['page' => 'pages/settings.php',         'css' => 'style.css'],
+            'default'   => ['page' => 'pages/customer_registry.php', 'css' => 'customer_registry.css'],
+            'new_order' => ['page' => 'pages/new_order.php',         'css' => 'new_order.css']
+        ];
+
+        $active_key = $is_new_order ? 'new_order' : (isset($routes[$view]) ? $view : 'default');
+        $active_route = $routes[$active_key];
+
+        if ($active_route['css'] !== 'style.css') {
+            $css_path = 'assets/styles/' . $active_route['css'];
+            echo '<link rel="stylesheet" href="'.$css_path.'?v='.filemtime($css_path).'">';
+        }
     ?>
 
     <link rel="icon" type="image/png" href="assets/icon/smart-home-sensor-wifi-black-outline-25276_1024.png">
 
     <!-- Logic Initialization (Deferred) -->
-    <script src="assets/js/inventory_data.js?v=1.1" defer></script>
+    <script src="assets/js/inventory_data.js?v=<?= filemtime('assets/js/inventory_data.js') ?>" defer></script>
 </head>
 
 <body>
@@ -77,13 +90,11 @@
         </nav>
     </div>
 
-    <div class="container <?= isset($_GET['customer_id']) || (isset($_GET['view']) && $_GET['view'] === 'orders') || (isset($_GET['view']) && $_GET['view'] === 'warehouse') ? 'order-view' : '' ?>" role="main">
+    <div class="container <?= $is_new_order || $view === 'orders' || $view === 'warehouse' ? 'order-view' : '' ?>" role="main">
         <?php
         // Order Creation Logic
         if (isset($_GET['action']) && $_GET['action'] === 'create_new_order' && isset($_GET['customer_id'])) {
             $db_dir = 'assets/db';
-            if (!is_dir($db_dir)) mkdir($db_dir, 0777, true);
-
             $conn_o = new PDO("sqlite:" . $db_dir . "/orders.db");
             $new_order_id = 'ORD-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
 
@@ -94,21 +105,12 @@
             exit();
         }
 
-        if (isset($_GET['customer_id'])) {
+        if ($is_new_order) {
             $current_customer = $_GET['customer_id'];
             $current_order = $_GET['order_id'] ?? null;
-            include 'pages/new_order.php';
-        } elseif (isset($_GET['view']) && $_GET['view'] === 'register') {
-            include 'pages/new_customer.php';
-        } elseif (isset($_GET['view']) && $_GET['view'] === 'orders') {
-            include 'pages/orders.php';
-        } elseif (isset($_GET['view']) && $_GET['view'] === 'warehouse') {
-            include 'pages/warehouse.php';
-        } elseif (isset($_GET['view']) && $_GET['view'] === 'settings') {
-            include 'pages/settings.php';
-        } else {
-            include 'pages/customer_registry.php';
         }
+
+        include $active_route['page'];
         ?>
     </div>
     <footer class="footer" role="contentinfo">
@@ -145,9 +147,9 @@
         </nav>
     </footer>
     <!-- Load compiled JavaScript directly for performance/mobile compatibility -->
-    <script src="assets/js/new_order.js?v=1.1" defer></script>
-    <script src="assets/js/warehouse.js?v=1.4" defer></script>
-    <script src="assets/js/customer_registry.js?v=1.1" defer></script>
+    <script src="assets/js/new_order.js?v=<?= filemtime('assets/js/new_order.js') ?>" defer></script>
+    <script src="assets/js/warehouse.js?v=<?= filemtime('assets/js/warehouse.js') ?>" defer></script>
+    <script src="assets/js/customer_registry.js?v=<?= filemtime('assets/js/customer_registry.js') ?>" defer></script>
 </body>
 
 </html>

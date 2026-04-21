@@ -1,4 +1,4 @@
-# 📦 IQA Metal: Multi-Order Management System
+# 🏬 IQA Warehouse Inventory & Order Manager
 ## 📋 Project Overview
 A robust, high-performance order procurement application designed for building and managing complex inventory batches. Optimized for both rapid warehouse intake on mobile devices and professional desktop manifest generation.
 
@@ -13,7 +13,6 @@ Manage the entire B2B database from a high-performance centralized interface.
     - **Lifetime Value (LTV)**: Automatically calculated total gross value from all finalized batches.
     - **Last Order Tracking**: At-a-glance visibility of the most recent batch date for every account.
     - **Order History**: Clean breakdown of active vs. completed batches with deep links to their respective manifests.
-- **Internal CRM Notes**: Dedicated space for tracking procurement habits and account-specific instructions.
 
 ### 2. Batch Builder (Order Entry) — `pages/new_order.php`
 The central tool for adding hardware to active orders.
@@ -85,6 +84,7 @@ Administrative control panel for system-wide configuration.
 │   ├── db/            # SQLite databases (Critical Data — gitignored)
 │   ├── js/
 │   │   ├── checkout.js   # All checkout manifest JS logic
+│   │   ├── warehouse.js  # Warehouse inventory logic
 │   │   └── new_order.js  # Batch builder JS (compiled from TS)
 │   ├── styles/        # Per-page CSS files
 │   └── ts/            # TypeScript source (Legacy/Dev reference)
@@ -97,6 +97,7 @@ Administrative control panel for system-wide configuration.
 │   ├── new_customer.php
 │   ├── new_order.php
 │   ├── orders.php
+│   ├── warehouse.php
 │   └── settings.php
 ├── DOCS/
 │   └── DOCUMENTATION.md

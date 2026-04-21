@@ -12,35 +12,6 @@ try {
     $conn_c = new PDO("sqlite:" . $db_cust);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Handle Global Status Updates
-    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
-        if ($_POST['action'] === 'update_order_status') {
-            $ord_id = $_POST['order_id'];
-            $new_status = $_POST['new_status'];
-            $stmt_u = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
-            $stmt_u->execute([$new_status, $ord_id]);
-
-            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                echo json_encode(['status' => 'success']);
-                exit();
-            }
-        } elseif ($_POST['action'] === 'transfer_order') {
-            $ord_id = $_POST['order_id'];
-            $new_cust_id = $_POST['new_customer_id'];
-
-            // Update orders
-            $stmt_o = $conn->prepare("UPDATE orders SET customer_id = ? WHERE order_id = ?");
-            $stmt_o->execute([$new_cust_id, $ord_id]);
-
-            // Update items
-            $stmt_i = $conn->prepare("UPDATE items SET customer_id = ? WHERE order_id = ?");
-            $stmt_i->execute([$new_cust_id, $ord_id]);
-        }
-        
-        header("Location: index.php?view=orders" . (isset($_GET['type']) ? "&type=".$_GET['type'] : ""));
-        exit();
-    }
-
     // Fetch Filtering parameters
     $show_type = $_GET['type'] ?? 'active'; // 'active' vs 'completed'
 
@@ -115,22 +86,21 @@ try {
                     <div class="order-id-meta"><?= htmlspecialchars($order['order_id']) ?></div>
                 </div>
 
-                <!-- Management & Action Area -->
-                <div class="order-action-row">
-                    <form method="POST" onchange="this.submit()" class="status-form">
-                        <input type="hidden" name="action" value="update_order_status">
-                        <input type="hidden" name="order_id" value="<?= $order['order_id'] ?>">
-                        <div class="select-wrapper">
-                            <select name="new_status" class="order-status-select">
-                                <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active</option>
-                                <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
-                                <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Paid</option>
-                                <option value="dispatched" <?= $status === 'dispatched' ? 'selected' : '' ?>>Dispatched</option>
-                                <option value="canceled" <?= $status === 'canceled' ? 'selected' : '' ?>>Canceled</option>
-                                <option value="finalized" <?= $status === 'finalized' ? 'selected' : '' ?>>Finalized</option>
-                            </select>
+                    <div class="order-action-row">
+                        <div class="status-form">
+                            <div class="select-wrapper">
+                                <select name="new_status" class="order-status-select" 
+                                        onchange="updateOrderStatus(this, '<?= $order['order_id'] ?>')"
+                                        data-original-value="<?= htmlspecialchars($status) ?>">
+                                    <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active</option>
+                                    <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                    <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Paid</option>
+                                    <option value="dispatched" <?= $status === 'dispatched' ? 'selected' : '' ?>>Dispatched</option>
+                                    <option value="canceled" <?= $status === 'canceled' ? 'selected' : '' ?>>Canceled</option>
+                                    <option value="finalized" <?= $status === 'finalized' ? 'selected' : '' ?>>Finalized</option>
+                                </select>
+                            </div>
                         </div>
-                    </form>
                     <a href="checkout.php?customer_id=<?= urlencode($order['customer_id']) ?>&order_id=<?= urlencode($order['order_id']) ?>" class="btn-order-view">
                         <span>View Details</span>
                         <i class="arrow-icon">→</i>
@@ -151,7 +121,7 @@ try {
         </div>
         <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">Move this batch to a different customer account.</p>
         
-        <form method="POST">
+        <form onsubmit="transferOrder(event)">
             <input type="hidden" name="action" value="transfer_order">
             <input type="hidden" name="order_id" id="transfer_order_id">
             

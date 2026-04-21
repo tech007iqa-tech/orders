@@ -92,9 +92,8 @@ if ($selected_loc) {
 }
 ?>
 
-<script>
-    // Global context for warehouse logic
-    window.activeSector = "<?= htmlspecialchars($selected_sector) ?>";
+<script id="warehouse-state" type="application/json">
+    <?= json_encode(['activeSector' => $selected_sector], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>
 </script>
 
 
