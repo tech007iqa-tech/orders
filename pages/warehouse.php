@@ -46,6 +46,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 'condition' => $_POST['condition'] ?? '', 'notes' => $_POST['notes'] ?? '',
                 'ram' => $_POST['ram'] ?? '', 'storage' => $_POST['storage'] ?? '', 'cpu' => $_POST['cpu'] ?? '', 'gpu' => $_POST['gpu'] ?? ''
             ];
+        } elseif ($sector === 'Desktops') {
+            $specs = [
+                'cpu_gen' => $_POST['cpu_gen'] ?? '',
+                'condition' => $_POST['condition'] ?? '',
+                'notes' => $_POST['notes'] ?? ''
+            ];
         } else {
             $specs = ['condition' => $_POST['condition'] ?? '', 'notes' => $_POST['notes'] ?? ''];
         }
@@ -117,12 +123,20 @@ if ($selected_loc) {
             <div class="gate-options-container">
                 <!-- OPTION 1: REGISTRATION / WORKING ZONE -->
                 <div class="gate-card main-gate">
-                    <h2 style="font-weight:900; margin-bottom:10px;">Select Working Zone</h2>
-                    <p style="color:var(--text-secondary); margin-bottom:30px;">Choose a shelf to register or edit stock.</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                        <div>
+                            <h2 style="font-weight:900; margin-bottom:4px;">Select Working Zone</h2>
+                            <p style="color:var(--text-secondary); font-size: 0.9rem;">Choose a shelf to register or edit stock.</p>
+                        </div>
+                        <div class="search-container" style="max-width: 250px; margin: 0;">
+                            <i class="search-icon">🔍</i>
+                            <input type="text" id="gate-loc-search" placeholder="Find zone..." onkeyup="filterGateLocations()" class="search-input" style="height: 40px; font-size: 0.9rem; border-radius: 10px;">
+                        </div>
+                    </div>
                     
-                    <div class="loc-grid">
+                    <div class="loc-grid" id="gate-loc-grid">
                         <?php foreach ($existing_locs as $loc): ?>
-                            <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>&loc=<?= urlencode($loc) ?>" class="loc-item">
+                            <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>&loc=<?= urlencode($loc) ?>" class="loc-item gate-loc-item" data-loc-name="<?= htmlspecialchars(strtolower($loc)) ?>">
                                 <span class="loc-icon">📦</span>
                                 <span class="loc-name"><?= htmlspecialchars($loc) ?></span>
                             </a>
@@ -136,6 +150,9 @@ if ($selected_loc) {
                                 <button type="submit" style="display:none;"></button>
                             </form>
                         </div>
+                    </div>
+                    <div id="gate-no-results" style="display:none; text-align:center; padding: 40px; color: #94a3b8; font-weight: 600;">
+                        No matching zones found.
                     </div>
                 </div>
 
@@ -209,6 +226,8 @@ if ($selected_loc) {
                                 <th>Category</th>
                                 <th>CPU / GPU</th>
                                 <th>RAM / Storage</th>
+                            <?php elseif ($selected_sector === 'Desktops'): ?>
+                                <th>CPU / Gen Brand</th>
                             <?php endif; ?>
                             <th>Notes</th>
                             <th class="col-log">Staff Log</th>
@@ -252,6 +271,8 @@ if ($selected_loc) {
                                         <td><div class="spec-value"><?= htmlspecialchars($specs['category'] ?? '-') ?></div></td>
                                         <td><div class="spec-value"><?= htmlspecialchars(($specs['cpu'] ?? '-') . ' / ' . ($specs['gpu'] ?? '-')) ?></div></td>
                                         <td><div class="spec-value"><?= htmlspecialchars(($specs['ram'] ?? '-') . ' / ' . ($specs['storage'] ?? '-')) ?></div></td>
+                                    <?php elseif ($selected_sector === 'Desktops'): ?>
+                                        <td><div class="spec-value"><?= htmlspecialchars($specs['cpu_gen'] ?? '-') ?></div></td>
                                     <?php endif; ?>
 
                                     <td>
@@ -305,6 +326,8 @@ if ($selected_loc) {
                             </td>
                             <?php if ($selected_sector === 'Laptops' || $selected_sector === 'Gaming'): ?>
                                 <td colspan="6"></td>
+                            <?php elseif ($selected_sector === 'Desktops'): ?>
+                                <td colspan="4"></td>
                             <?php else: ?>
                                 <td colspan="3"></td>
                             <?php endif; ?>
@@ -319,7 +342,12 @@ if ($selected_loc) {
         <aside class="warehouse-sidebar">
             <div style="background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: sticky; top: 20px;">
                 
-                <h3 id="wh-form-title" style="font-weight: 800; margin-bottom: 20px;">📥 Register Stock</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 id="wh-form-title" style="font-weight: 800; margin: 0;">📥 Register Stock</h3>
+                    <button type="button" id="btn-clone-last" onclick="fillLastEnteredData()" style="background: #f1f5f9; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 800; cursor: pointer; color: #475569; transition: all 0.2s;">
+                        📋 Clone Last
+                    </button>
+                </div>
                 <form method="POST" action="" id="wh-main-form">
                     <input type="hidden" name="action" id="wh-form-action" value="add_inventory">
                     <input type="hidden" name="item_id" id="wh-edit-id" value="">
@@ -342,15 +370,16 @@ if ($selected_loc) {
                             <datalist id="model-options"></datalist>
                         </div></div>
                         <?php if (isset($_GET['msg'])): ?>
-                    <div style="background: #dcfce7; color: #15803d; padding: 12px 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid #bef264; display: flex; align-items: center; gap: 10px; animation: slideDown 0.3s ease;">
+                    <div id="wh-msg-banner" style="background: #dcfce7; color: #15803d; padding: 12px 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid #bef264; display: flex; align-items: center; gap: 10px; animation: slideDown 0.3s ease; transition: opacity 0.5s ease, transform 0.5s ease;">
                         <span>✅</span>
-                        <span>
+                        <span style="flex: 1;">
                             <?php 
                                 if($_GET['msg'] === 'added') echo "Stock registered successfully!";
                                 elseif($_GET['msg'] === 'updated') echo "Entry updated successfully!";
                                 elseif($_GET['msg'] === 'deleted') echo "Entry removed from stock.";
                             ?>
                         </span>
+                        <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:#15803d; cursor:pointer; font-size:1.2rem; line-height:1; padding:0 5px; opacity:0.5;">&times;</button>
                     </div>
                 <?php endif; ?>
                     
@@ -446,6 +475,11 @@ if ($selected_loc) {
                                 <label>Specs / Condition</label>
                                 <input type="text" name="voltage" placeholder="65W / 19.5V" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                                 <input type="text" name="condition" placeholder="New" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px; margin-top:5px;">
+                            </div>
+                        <?php elseif ($selected_sector === 'Desktops'): ?>
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label for="wh-spec-cpu-gen">CPU / Gen Brand</label>
+                                <input type="text" id="wh-spec-cpu-gen" name="cpu_gen" placeholder="i7 10th Gen / Intel" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
                             </div>
                         <?php endif; ?>
                     </div>

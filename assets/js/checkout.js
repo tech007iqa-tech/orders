@@ -140,6 +140,7 @@ function downloadCSV() {
  */
 function recalculateTotals() {
     let grandTotal = 0;
+    let totalQty = 0;
     const rows = document.querySelectorAll('.item-row');
 
     rows.forEach(row => {
@@ -160,8 +161,14 @@ function recalculateTotals() {
             printSpans[0].innerText = qty.toString();
             printSpans[1].innerText = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
+        totalQty += qty;
         grandTotal += subtotal;
     });
+
+    const totalQtyDisplay = document.getElementById('total-qty-display');
+    if (totalQtyDisplay) {
+        totalQtyDisplay.innerText = totalQty.toString();
+    }
 
     const grandDisplay = document.getElementById('grand-total-display');
     if (grandDisplay) {

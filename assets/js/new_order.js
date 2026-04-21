@@ -244,6 +244,8 @@ function selectWarehouseItem(item) {
             cpuVal = specs.cpu + (specs.gen ? " " + specs.gen : "");
         } else if (specs.gpu) {
             cpuVal = specs.gpu;
+        } else if (specs.cpu_gen) {
+            cpuVal = specs.cpu_gen;
         }
         cpuEl.value = cpuVal;
     }

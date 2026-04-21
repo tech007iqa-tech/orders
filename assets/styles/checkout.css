@@ -185,16 +185,34 @@
         justify-content: space-between !important;
         align-items: center;
         width: 100% !important;
-        padding: 20px 0 !important;
+        padding: 24px 0 !important;
         border-top: 2px solid var(--text-main);
+        gap: 15px;
     }
 
     .row-total td {
         display: block !important;
         width: auto !important;
         padding: 0 !important;
-        font-size: 1.2rem !important;
+        font-size: 1.1rem !important;
         font-weight: 800 !important;
+    }
+
+    .row-total .total-empty {
+        display: none !important;
+    }
+
+    .row-total .total-label {
+        flex: 1;
+        font-size: 1rem !important;
+        color: var(--text-secondary);
+    }
+
+    .row-total .total-qty::before {
+        content: "Total Qty: ";
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 600;
     }
 }
 

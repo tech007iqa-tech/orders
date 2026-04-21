@@ -224,8 +224,12 @@ try {
                     </tr>
                     <?php endif; ?>
                     <tr class="row-total">
-                        <td colspan="3" class="total-label" style="padding-left: 0;">Total Amount Due</td>
-                        <td class="total-amount" style="text-align: right; color: var(--accent-color); padding-right: 0;">
+                        <td class="total-label" style="padding-left: 0; font-weight: 800;">Total Amount Due</td>
+                        <td class="total-qty" style="text-align: center; font-weight: 800; color: var(--text-main);">
+                            <span id="total-qty-display"><?= (int)$total_items ?></span>
+                        </td>
+                        <td class="total-empty"></td>
+                        <td class="total-amount" style="text-align: right; color: var(--accent-color); padding-right: 0; font-weight: 800;">
                             $<span id="grand-total-display"><?= number_format($grand_total, 2) ?></span>
                         </td>
                     </tr>

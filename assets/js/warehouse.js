@@ -4,7 +4,78 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     initWarehouseDatalists();
+    
+    // Auto-hide success messages
+    const msgBanner = document.getElementById('wh-msg-banner');
+    if (msgBanner) {
+        setTimeout(() => {
+            msgBanner.style.opacity = '0';
+            msgBanner.style.transform = 'translateY(-10px)';
+            setTimeout(() => msgBanner.remove(), 500);
+            
+            // Clean URL without refresh
+            const url = new URL(window.location);
+            if (url.searchParams.has('msg')) {
+                url.searchParams.delete('msg');
+                window.history.replaceState({}, '', url);
+            }
+        }, 1500); // Snappy dismissal (1.5s)
+    }
+
+    // Save form data to localStorage on submit
+    const whForm = document.getElementById('wh-main-form');
+    if (whForm) {
+        whForm.addEventListener('submit', () => {
+            const formData = new FormData(whForm);
+            const data = {};
+            formData.forEach((value, key) => {
+                // Don't save IDs or actions
+                if (key !== 'item_id' && key !== 'action') {
+                    data[key] = value;
+                }
+            });
+            localStorage.setItem('wh_last_entry', JSON.stringify(data));
+        });
+    }
+
+    // Hide clone button if no data
+    const cloneBtn = document.getElementById('btn-clone-last');
+    if (cloneBtn && !localStorage.getItem('wh_last_entry')) {
+        cloneBtn.style.display = 'none';
+    }
 });
+
+/**
+ * Fills the registration form with data from the last submission
+ */
+function fillLastEnteredData() {
+    const raw = localStorage.getItem('wh_last_entry');
+    if (!raw) return;
+
+    const data = JSON.parse(raw);
+    const form = document.getElementById('wh-main-form');
+    if (!form) return;
+
+    // Direct mapping for common fields
+    const fields = ['brand', 'model', 'quantity', 'condition', 'notes', 'cpu', 'gpu', 'ram', 'storage', 'battery', 'windows', 'series', 'gen', 'cpu_gen', 'gaming_category'];
+    
+    fields.forEach(f => {
+        if (form[f] && data[f] !== undefined) {
+            form[f].value = data[f];
+        }
+    });
+
+    // Trigger UI updates for specific sectors (like Gaming category toggle)
+    if (typeof toggleGamingFields === 'function') toggleGamingFields();
+
+    // Success micro-feedback on the button
+    const btn = document.getElementById('btn-clone-last');
+    if (btn) {
+        const orig = btn.innerText;
+        btn.innerText = '✅ Cloned';
+        setTimeout(() => btn.innerText = orig, 1000);
+    }
+}
 
 /**
  * Initializes the brand/model/series datalists using the shared inventory data.
@@ -20,6 +91,7 @@ function initWarehouseDatalists() {
     // Determine target inventory based on active sector
     let targetInventory = IQA_LaptopInventory;
     if (window.activeSector === 'Gaming') targetInventory = IQA_GamingInventory;
+    if (window.activeSector === 'Desktops') targetInventory = IQA_LaptopInventory;
     // For general/electronics we might still use a fall-back or merged list if needed
     // but for now, we follow the split.
 
@@ -32,7 +104,7 @@ function initWarehouseDatalists() {
         brandIn.addEventListener('change', (e) => {
             const selectedBrand = e.target.value;
             const data = targetInventory[selectedBrand];
-            
+
             if (modelIn) modelIn.value = '';
             if (modelDl) modelDl.innerHTML = '';
             if (seriesDl) seriesDl.innerHTML = '';
@@ -55,7 +127,7 @@ function toggleGamingFields() {
     const seriesIn = document.getElementById('wh-series');
     const ramIn = document.getElementById('wh-ram');
     const storageIn = document.getElementById('wh-storage');
-    
+
     if (!cat) return;
 
     const val = cat.value;
@@ -101,7 +173,7 @@ function filterWarehouse() {
 
     const filter = searchInput.value.toLowerCase();
     const cards = document.getElementsByClassName('inventory-card');
-    
+
     let visibleQtyTotal = 0;
 
     for (let i = 0; i < cards.length; i++) {
@@ -116,11 +188,39 @@ function filterWarehouse() {
             cards[i].style.display = "none";
         }
     }
-    
+
     // Update the total qty row if it exists
     const totalQtyElem = document.getElementById('table-total-qty');
     if (totalQtyElem) {
         totalQtyElem.innerText = visibleQtyTotal.toLocaleString();
+    }
+}
+
+/**
+ * Filters the locations on the Gate page in real-time
+ */
+function filterGateLocations() {
+    const input = document.getElementById('gate-loc-search');
+    const grid = document.getElementById('gate-loc-grid');
+    const noResults = document.getElementById('gate-no-results');
+    if (!input || !grid) return;
+
+    const filter = input.value.toLowerCase();
+    const items = grid.getElementsByClassName('gate-loc-item');
+    let found = 0;
+
+    for (let i = 0; i < items.length; i++) {
+        const locName = items[i].getAttribute('data-loc-name') || "";
+        if (locName.includes(filter)) {
+            items[i].style.display = "";
+            found++;
+        } else {
+            items[i].style.display = "none";
+        }
+    }
+
+    if (noResults) {
+        noResults.style.display = (found === 0 ? "block" : "none");
     }
 }
 
@@ -175,6 +275,8 @@ function editWarehouseItem(item) {
         if (form.storage) form.storage.value = specs.storage || '';
         if (form.cpu) form.cpu.value = specs.cpu || '';
         if (form.gpu) form.gpu.value = specs.gpu || '';
+    } else if (item.sector === 'Desktops') {
+        if (form.cpu_gen) form.cpu_gen.value = specs.cpu_gen || '';
     }
 
     // Scroll to form for mobile UX
@@ -210,11 +312,11 @@ function resetWarehouseForm() {
  */
 function downloadWarehouseCSV() {
     const cards = document.querySelectorAll('.inventory-card');
-    
+
     // Updated to match the specified B2B structure
     const headers = ["Type", "Brand", "Model", "Series", "CPU / Gen", "Description", "Price", "QTY", "Total"];
     let csv = headers.map(h => `"${h}"`).join(",") + "\n";
-    
+
     const sanitize = (val) => `"${(val || "").toString().trim().replace(/"/g, '""')}"`;
     let count = 0;
 
@@ -222,14 +324,17 @@ function downloadWarehouseCSV() {
         // Only export visible items (respects search filter)
         if (card.style.display !== 'none') {
             const specs = JSON.parse(card.getAttribute('data-specs') || '{}');
-            
+
             const brand = card.getAttribute('data-brand') || '';
             const model = card.getAttribute('data-model') || '';
             const qtyElement = card.querySelector('.qty-pill');
             const qty = qtyElement ? qtyElement.innerText.trim() : '0';
-            
+
             // Map Warehouse specs to the simplified B2B columns
-            const cpuGen = (specs.cpu || "") + (specs.gen ? " (" + specs.gen + ")" : "");
+            let cpuGen = (specs.cpu || "") + (specs.gen ? " (" + specs.gen + ")" : "");
+            if (card.getAttribute('data-sector-theme') === 'Desktops') {
+                cpuGen = specs.cpu_gen || '';
+            }
             const fullDesc = (specs.condition || "") + (specs.notes ? " - " + specs.notes : "");
 
             const rowData = [
@@ -243,7 +348,7 @@ function downloadWarehouseCSV() {
                 sanitize(qty),                   // QTY
                 "0.00"                           // Total
             ];
-            
+
             csv += rowData.join(",") + "\n";
             count++;
         }
@@ -259,7 +364,7 @@ function downloadWarehouseCSV() {
     const link = document.createElement("a");
     const dateStamp = new Date().toISOString().slice(0, 10);
     const sector = (window.activeSector || "Warehouse").replace(/\s+/g, '_');
-    
+
     link.href = url;
     link.download = `IQA_Inventory_${sector}_${dateStamp}.csv`;
     document.body.appendChild(link);

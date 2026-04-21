@@ -146,7 +146,7 @@
     </footer>
     <!-- Load compiled JavaScript directly for performance/mobile compatibility -->
     <script src="assets/js/new_order.js?v=1.1" defer></script>
-    <script src="assets/js/warehouse.js?v=1.1" defer></script>
+    <script src="assets/js/warehouse.js?v=1.4" defer></script>
     <script src="assets/js/customer_registry.js?v=1.1" defer></script>
 </body>
 
