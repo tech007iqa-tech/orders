@@ -94,13 +94,19 @@ $sectors = $conn_wh->query("SELECT * FROM sectors")->fetchAll(PDO::FETCH_ASSOC);
 $items = [];
 if ($selected_loc) {
     if ($selected_loc === 'GLOBAL') {
-        $stmt_i = $conn_wh->prepare("SELECT * FROM inventory WHERE sector = ? ORDER BY id DESC");
-        $stmt_i->execute([$selected_sector]);
+        if ($selected_sector === 'Master') {
+            $stmt_i = $conn_wh->query("SELECT * FROM inventory ORDER BY sector ASC, id DESC");
+            $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
+        } else {
+            $stmt_i = $conn_wh->prepare("SELECT * FROM inventory WHERE sector = ? ORDER BY id DESC");
+            $stmt_i->execute([$selected_sector]);
+            $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
+        }
     } else {
         $stmt_i = $conn_wh->prepare("SELECT * FROM inventory WHERE sector = ? AND location_code = ? ORDER BY id DESC");
         $stmt_i->execute([$selected_sector, $selected_loc]);
+        $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
     }
-    $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 
@@ -139,9 +145,15 @@ if ($selected_loc) {
                             <h2 style="font-weight:900; margin-bottom:4px;">Select Working Zone</h2>
                             <p style="color:var(--text-secondary); font-size: 0.9rem;">Choose a shelf to register or edit stock.</p>
                         </div>
-                        <div class="search-container" style="max-width: 250px; margin: 0;">
-                            <i class="search-icon">🔍</i>
-                            <input type="text" id="gate-loc-search" placeholder="Find zone..." onkeyup="filterGateLocations()" class="search-input" style="height: 40px; font-size: 0.9rem; border-radius: 10px;">
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div class="search-container" style="max-width: 200px; margin: 0;">
+                                <i class="search-icon">🔍</i>
+                                <input type="text" id="gate-loc-search" placeholder="Find zone..." onkeyup="filterGateLocations()" class="search-input" style="height: 40px; font-size: 0.9rem; border-radius: 10px;">
+                            </div>
+                            <select id="gate-loc-sort" onchange="sortGateLocations()" style="width: auto; height: 40px; font-size: 0.8rem; border-radius: 10px; padding: 0 12px; font-weight: 700; cursor: pointer; border: 1px solid var(--border-color); background: white; outline: none;">
+                                <option value="asc">Sort: A-Z</option>
+                                <option value="desc">Sort: Z-A</option>
+                            </select>
                         </div>
                     </div>
                     
@@ -170,15 +182,21 @@ if ($selected_loc) {
                     </div>
                 </div>
 
-                <!-- OPTION 2: GLOBAL VIEWING -->
+                <!-- OPTION 2: GLOBAL DASHBOARD (Combined) -->
                 <div class="gate-card">
-                    <div style="font-size: 3.5rem; margin-bottom: 25px;">🌐</div>
-                    <h2 style="font-weight:900; margin-bottom:10px;">Global Warehouse</h2>
-                    <p style="color:var(--text-secondary); margin-bottom:30px;">View and search inventory across all zones at once without registration tools.</p>
-                    <div style="flex: 1; display:flex; align-items:center; justify-content:center;">
+                    <div style="font-size: 3.5rem; margin-bottom: 25px;">📊</div>
+                    <h2 style="font-weight:900; margin-bottom:10px;">Global Dashboard</h2>
+                    <p style="color:var(--text-secondary); margin-bottom:30px;">Managing stock and locations across all inventory sectors in one easy view.</p>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                        <a href="index.php?view=warehouse&sector=Master&loc=GLOBAL" 
+                           style="display: block; width: 100%; padding: 18px; background: var(--text-main); color: white; border-radius: 14px; font-weight: 800; text-decoration: none; transition: 0.2s; font-size: 1rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+                           🏢 Master Overview (All Stock)
+                        </a>
+                        
                         <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>&loc=GLOBAL" 
-                           style="display: block; width: 100%; padding: 20px; background: var(--text-main); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; transition: 0.2s; font-size: 1.1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-                           Enter Global View
+                           style="display: block; width: 100%; padding: 15px; border: 2px solid #e2e8f0; color: #64748b; border-radius: 14px; font-weight: 700; text-decoration: none; transition: 0.2s; font-size: 0.9rem;">
+                           🌐 View Only <?= htmlspecialchars($selected_sector) ?>
                         </a>
                     </div>
                 </div>
@@ -230,6 +248,9 @@ if ($selected_loc) {
                     <thead>
                         <tr>
                             <th class="col-type">Location</th>
+                            <?php if ($selected_sector === 'Master'): ?>
+                                <th>Sector</th>
+                            <?php endif; ?>
                             <th class="col-main">Make/Model</th>
                             <th class="col-qty">QTY</th>
                             <?php if ($selected_sector === 'Laptops'): ?>
@@ -242,6 +263,8 @@ if ($selected_loc) {
                                 <th>RAM / Storage</th>
                             <?php elseif ($selected_sector === 'Desktops'): ?>
                                 <th>CPU / Gen Brand</th>
+                            <?php elseif ($selected_sector === 'Master'): ?>
+                                <th>Core Specs</th>
                             <?php endif; ?>
                             <th>Notes</th>
                             <th class="col-log">Staff Log</th>
@@ -270,6 +293,14 @@ if ($selected_loc) {
                                     
                                     <td><span class="location-tag"><?= htmlspecialchars($item['location_code']) ?></span></td>
                                     
+                                    <?php if ($selected_sector === 'Master'): ?>
+                                        <td>
+                                            <a href="index.php?view=warehouse&sector=<?= urlencode($item['sector']) ?>&loc=<?= urlencode($item['location_code']) ?>" style="text-decoration: none;">
+                                                <span class="sector-badge sector-<?= strtolower($item['sector']) ?>"><?= htmlspecialchars($item['sector']) ?></span>
+                                            </a>
+                                        </td>
+                                    <?php endif; ?>
+
                                     <td>
                                         <div class="cell-make"><?= htmlspecialchars($item['brand']) ?></div>
                                         <div class="cell-model"><?= htmlspecialchars($item['model']) ?></div>
@@ -287,6 +318,17 @@ if ($selected_loc) {
                                         <td><div class="spec-value"><?= htmlspecialchars(($specs['ram'] ?? '-') . ' / ' . ($specs['storage'] ?? '-')) ?></div></td>
                                     <?php elseif ($selected_sector === 'Desktops'): ?>
                                         <td><div class="spec-value"><?= htmlspecialchars($specs['cpu_gen'] ?? '-') ?></div></td>
+                                    <?php elseif ($selected_sector === 'Master'): ?>
+                                        <td>
+                                            <div class="spec-value" style="font-size: 0.75rem;">
+                                                <?php 
+                                                    if ($item['sector'] === 'Laptops') echo htmlspecialchars(($specs['cpu'] ?? '') . ' ' . ($specs['ram'] ?? ''));
+                                                    elseif ($item['sector'] === 'Gaming') echo htmlspecialchars(($specs['category'] ?? '') . ' ' . ($specs['gpu'] ?? ''));
+                                                    elseif ($item['sector'] === 'Desktops') echo htmlspecialchars($specs['cpu_gen'] ?? '');
+                                                    else echo '-';
+                                                ?>
+                                            </div>
+                                        </td>
                                     <?php endif; ?>
 
                                     <td>
@@ -494,7 +536,24 @@ if ($selected_loc) {
                         <?php elseif ($selected_sector === 'Desktops'): ?>
                             <div class="form-group" style="margin-bottom: 15px;">
                                 <label for="wh-spec-cpu-gen">CPU / Gen Brand</label>
-                                <input type="text" id="wh-spec-cpu-gen" name="cpu_gen" placeholder="i7 10th Gen / Intel" style="width:100%; height:38px; border-radius:8px; border:1px solid #ddd; padding: 0 10px;">
+                                <input type="text" id="wh-spec-cpu-gen" name="cpu_gen" list="cpu-gen-options" placeholder="i7 10th Gen / Intel" style="width:100%; height:40px; border-radius:10px; border:1px solid #ddd; padding: 0 12px; font-weight: 600;">
+                                <datalist id="cpu-gen-options">
+                                    <option value="2nd-3rd Gen">
+                                    <option value="4th-5th Gen">
+                                    <option value="6th-7th Gen">
+                                    <option value="i5-8th Gen">
+                                    <option value="i7-8th Gen">
+                                    <option value="i5-9th Gen">
+                                    <option value="i7-9th Gen">
+                                    <option value="i5-10th Gen">
+                                    <option value="i7-10th Gen">
+                                    <option value="i5-11th Gen">
+                                    <option value="i7-11th Gen">
+                                    <option value="i5-12th Gen">
+                                    <option value="i7-12th Gen">
+                                    <option value="i5-13th Gen">
+                                    <option value="i7-13th Gen">
+                                </datalist>
                             </div>
                         <?php endif; ?>
                     </div>

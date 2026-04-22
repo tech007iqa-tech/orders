@@ -114,6 +114,16 @@
         ?>
     </div>
     <footer class="footer" role="contentinfo">
+        <?php if ($selected_loc): ?>
+                <div class="active-loc-display">
+                    <div class="loc-label">Active Location</div>
+                    <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>" class="loc-active-badge">
+                        <span class="loc-pin">📍</span>
+                        <span class="loc-text"><?= htmlspecialchars($selected_loc) ?></span>
+                        <span class="loc-change">Change</span>
+                    </a>
+                </div>
+            <?php endif; ?><hr />
     <nav class="breadcrumbs">
             <a href="../app/"
                 class="crumb <?= !isset($_GET['customer_id']) && !isset($_GET['view']) ? 'active' : '' ?>">

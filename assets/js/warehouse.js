@@ -12,7 +12,8 @@ function getWarehouseState() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initWarehouseDatalists();
-    
+    initCpuGenChips();
+
     // Auto-hide success messages
     const msgBanner = document.getElementById('wh-msg-banner');
     if (msgBanner) {
@@ -83,6 +84,49 @@ function fillLastEnteredData() {
         btn.innerText = '✅ Cloned';
         setTimeout(() => btn.innerText = orig, 1000);
     }
+
+    // Sync chips after cloning
+    syncCpuGenChips();
+}
+
+/**
+ * Initializes CPU/Gen chips click events
+ */
+function initCpuGenChips() {
+    const chips = document.querySelectorAll('#cpu-gen-chips .chip-item');
+    const input = document.getElementById('wh-spec-cpu-gen');
+    if (!chips.length || !input) return;
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            input.value = chip.getAttribute('data-value');
+            syncCpuGenChips();
+            // Optional: Trigger input event if other listeners depend on it
+            input.dispatchEvent(new Event('input'));
+        });
+    });
+
+    // Also sync when the user types manually
+    input.addEventListener('input', () => {
+        syncCpuGenChips();
+    });
+}
+
+/**
+ * Syncs the active state of chips with the hidden input value
+ */
+function syncCpuGenChips() {
+    const input = document.getElementById('wh-spec-cpu-gen');
+    const chips = document.querySelectorAll('#cpu-gen-chips .chip-item');
+    if (!input || !chips.length) return;
+
+    chips.forEach(c => {
+        if (c.getAttribute('data-value') === input.value) {
+            c.classList.add('active');
+        } else {
+            c.classList.remove('active');
+        }
+    });
 }
 
 /**
@@ -100,7 +144,7 @@ function initWarehouseDatalists() {
     const state = getWarehouseState();
     let targetInventory = IQA_LaptopInventory;
     if (state.activeSector === 'Gaming') targetInventory = IQA_GamingInventory;
-    if (state.activeSector === 'Desktops') targetInventory = IQA_LaptopInventory;
+    if (state.activeSector === 'Desktops') targetInventory = IQA_DesktopInventory;
     // For general/electronics we might still use a fall-back or merged list if needed
     // but for now, we follow the split.
 
@@ -119,8 +163,35 @@ function initWarehouseDatalists() {
             if (seriesDl) seriesDl.innerHTML = '';
 
             if (data) {
-                if (modelDl) modelDl.innerHTML = data.models.map(m => `<option value="${m}">`).join('');
-                if (seriesDl) seriesDl.innerHTML = (data.series || []).map(s => `<option value="${s}">`).join('');
+                // Smart Handling for Desktops: User usually types everything in 'Model'
+                if (state.activeSector === 'Desktops' && modelDl) {
+                    const allOptions = [...(data.models || []), ...(data.series || [])];
+                    modelDl.innerHTML = allOptions.map(m => `<option value="${m}">`).join('');
+                } else {
+                    // Standard Split (Laptops/Gaming)
+                    if (modelDl) modelDl.innerHTML = data.models.map(m => `<option value="${m}">`).join('');
+                    if (seriesDl) seriesDl.innerHTML = (data.series || []).map(s => `<option value="${s}">`).join('');
+                }
+            }
+        });
+    }
+
+    if (modelIn) {
+        modelIn.addEventListener('input', (e) => {
+            if (brandIn && brandIn.value === '') {
+                const val = e.target.value.toLowerCase();
+                if (val.length < 3) return; 
+
+                for (const [brand, data] of Object.entries(targetInventory)) {
+                    const found = (data.models || []).some(m => m.toLowerCase() === val) || 
+                                  (data.series || []).some(s => s.toLowerCase() === val);
+                    
+                    if (found) {
+                        brandIn.value = brand;
+                        brandIn.dispatchEvent(new Event('change'));
+                        break;
+                    }
+                }
             }
         });
     }
@@ -237,6 +308,37 @@ function filterGateLocations() {
 }
 
 /**
+ * Sorts the locations on the Gate page (A-Z or Z-A)
+ */
+function sortGateLocations() {
+    const sortVal = document.getElementById('gate-loc-sort').value;
+    const grid = document.getElementById('gate-loc-grid');
+    if (!grid) return;
+
+    // Get all children that are zone items or their wrappers
+    const items = Array.from(grid.children);
+    const zoneItems = items.filter(el => el.classList.contains('loc-item-wrapper'));
+    const newLocItem = items.find(el => el.classList.contains('new_loc') || el.classList.contains('new-loc'));
+
+    zoneItems.sort((a, b) => {
+        const itemA = a.querySelector('.gate-loc-item');
+        const itemB = b.querySelector('.gate-loc-item');
+        if (!itemA || !itemB) return 0;
+
+        const nameA = itemA.getAttribute('data-loc-name') || "";
+        const nameB = itemB.getAttribute('data-loc-name') || "";
+        
+        return sortVal === 'asc' 
+            ? nameA.localeCompare(nameB, undefined, {numeric: true, sensitivity: 'base'})
+            : nameB.localeCompare(nameA, undefined, {numeric: true, sensitivity: 'base'});
+    });
+
+    // Re-append in order
+    zoneItems.forEach(el => grid.appendChild(el));
+    if (newLocItem) grid.appendChild(newLocItem);
+}
+
+/**
  * Handles editing an existing warehouse item
  * Pre-fills the form and switches to update mode
  */
@@ -288,7 +390,10 @@ function editWarehouseItem(item) {
         if (form.cpu) form.cpu.value = specs.cpu || '';
         if (form.gpu) form.gpu.value = specs.gpu || '';
     } else if (item.sector === 'Desktops') {
-        if (form.cpu_gen) form.cpu_gen.value = specs.cpu_gen || '';
+        if (form.cpu_gen) {
+            form.cpu_gen.value = specs.cpu_gen || '';
+            syncCpuGenChips();
+        }
     }
 
     // Scroll to form for mobile UX
@@ -317,6 +422,7 @@ function resetWarehouseForm() {
 
     // Trigger UI cleanup
     if (typeof toggleGamingFields === 'function') toggleGamingFields();
+    syncCpuGenChips();
 }
 
 /**

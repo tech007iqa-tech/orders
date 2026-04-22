@@ -38,9 +38,28 @@ var IQA_LaptopInventory = {
     },
     "MSI": {
         models: ["Prestige", "Summit", "Stealth", "Creator"],
-        series: ["Prestige 14", "Summit E13", "GS66", "Z16", "GE76 Raider"]
     }
 };
+
+var IQA_DesktopInventory = {
+    "Dell": {
+        models: ["OptiPlex", "Precision Tower", "Vostro Desktop", "Inspiron Desktop"],
+        series: ["7040 SFF", "7050 SFF", "7060 SFF", "7070 SFF", "5040 SFF", "5050 SFF", "3040 SFF", "3050 SFF", "7040 Micro", "7050 Micro", "3050 Micro", "Tower"]
+    },
+    "HP": {
+        models: ["EliteDesk", "ProDesk", "Workstation", "Pavilion Desktop"],
+        series: ["800 G2 SFF", "800 G3 SFF", "800 G4 SFF", "600 G2 SFF", "600 G3 SFF", "400 G3 SFF", "800 G2 Mini", "800 G3 Mini", "Z240 Tower", "Z440 Tower"]
+    },
+    "Lenovo": {
+        models: ["ThinkCentre", "ThinkStation", "IdeaCentre"],
+        series: ["M900 SFF", "M700 SFF", "M910s SFF", "M920s SFF", "M710q Tiny", "M910q Tiny", "M920q Tiny", "P310 Tower", "P320 Tower"]
+    },
+    "Apple": {
+        models: ["Mac Mini", "iMac", "Mac Pro", "Mac Studio"],
+        series: ["M1", "M2", "Intel i5", "Intel i7", "27-inch 5K", "21.5-inch"]
+    }
+};
+
 
 var IQA_GamingInventory = {
     "Sony": {
@@ -70,7 +89,7 @@ var cpuGenerations = [
 ];
 
 // Global support for all scripts
-var IQA_Inventory = Object.assign({}, IQA_LaptopInventory, IQA_GamingInventory);
+var IQA_Inventory = Object.assign({}, IQA_LaptopInventory, IQA_DesktopInventory, IQA_GamingInventory);
 
 // Safely provide legacy name support without polluting with 'var' or 'const' that could cause redeclaration errors
 if (!window.inventoryData) {
