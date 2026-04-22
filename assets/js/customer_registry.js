@@ -126,17 +126,24 @@ function renderDetailView(data) {
                 <div class="detail-label">Active Batch Pipeline</div>
                 <div id="side-drafts" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px;">
                     ${drafts.length > 0 ? drafts.map(o => `
-                        <a href="index.php?customer_id=${encodeURIComponent(data.customer_id)}&order_id=${encodeURIComponent(o.order_id)}"
-                           class="order-row-link">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main);">${o.order_id}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">${o.created_at}</div>
-                            </div>
-                            <div style="text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
-                                <span class="badge status-active" style="font-size: 0.65rem;">${o.total_qty || 0} Items</span>
-                                <div style="font-weight: 800; font-size: 0.9rem;">${currencyFormatter.format(o.total_value || 0)}</div>
-                            </div>
-                        </a>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <a href="index.php?customer_id=${encodeURIComponent(data.customer_id)}&order_id=${encodeURIComponent(o.order_id)}"
+                               class="order-row-link" style="flex:1;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-main);">${o.order_id}</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">${o.created_at}</div>
+                                </div>
+                                <div style="text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+                                    <span class="badge status-active" style="font-size: 0.65rem;">${o.total_qty || 0} Items</span>
+                                    <div style="font-weight: 800; font-size: 0.9rem;">${currencyFormatter.format(o.total_value || 0)}</div>
+                                </div>
+                            </a>
+                            <form method="POST" onsubmit="return confirm('Delete this batch permanently?')" style="margin:0;">
+                                <input type="hidden" name="action" value="delete_order">
+                                <input type="hidden" name="order_id" value="${o.order_id}">
+                                <button type="submit" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.2rem; opacity:0.3; transition:opacity 0.2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.3">🗑️</button>
+                            </form>
+                        </div>
                     `).join('') : '<div class="empty-state" style="padding: 20px; font-size: 0.8rem; border-radius: 12px; background: #f8fafc; border: 1px dashed #e2e8f0; color: #94a3b8;">No active batches.</div>'}
                 </div>
             </div>
@@ -145,17 +152,24 @@ function renderDetailView(data) {
                 <div class="detail-label">Fulfillment History</div>
                 <div id="side-completed" style="display: flex; flex-direction: column; gap: 10px;">
                     ${history.length > 0 ? history.map(o => `
-                        <a href="checkout.php?customer_id=${encodeURIComponent(data.customer_id)}&order_id=${encodeURIComponent(o.order_id)}"
-                           class="order-row-link completed">
-                            <div style="flex: 1;">
-                                <div style="font-weight: 700; font-size: 0.9rem; color: #64748b;">${o.order_id}</div>
-                                <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">${o.created_at}</div>
-                            </div>
-                            <div style="text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
-                                <span class="badge badge-completed" style="font-size: 0.65rem; opacity: 0.8;">${o.total_qty || 0} Items</span>
-                                <div style="font-weight: 700; font-size: 0.9rem; color: #64748b;">${currencyFormatter.format(o.total_value || 0)}</div>
-                            </div>
-                        </a>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <a href="checkout.php?customer_id=${encodeURIComponent(data.customer_id)}&order_id=${encodeURIComponent(o.order_id)}"
+                               class="order-row-link completed" style="flex:1;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; font-size: 0.9rem; color: #64748b;">${o.order_id}</div>
+                                    <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 2px;">${o.created_at}</div>
+                                </div>
+                                <div style="text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+                                    <span class="badge badge-completed" style="font-size: 0.65rem; opacity: 0.8;">${o.total_qty || 0} Items</span>
+                                    <div style="font-weight: 700; font-size: 0.9rem; color: #64748b;">${currencyFormatter.format(o.total_value || 0)}</div>
+                                </div>
+                            </a>
+                            <form method="POST" onsubmit="return confirm('Delete this completed order permanently?')" style="margin:0;">
+                                <input type="hidden" name="action" value="delete_order">
+                                <input type="hidden" name="order_id" value="${o.order_id}">
+                                <button type="submit" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.2rem; opacity:0.1; transition:opacity 0.2s;" onmouseover="this.style.opacity=0.6" onmouseout="this.style.opacity=0.1">🗑️</button>
+                            </form>
+                        </div>
                     `).join('') : '<div class="empty-state" style="padding: 20px; font-size: 0.8rem; border-radius: 12px; background: #f8fafc; border: 1px dashed #e2e8f0; color: #94a3b8;">No completion history.</div>'}
                 </div>
             </div>
@@ -255,6 +269,16 @@ function renderEditView(data) {
 
             <button type="submit" class="btn-main" style="width:100%; padding:14px; border-radius:12px; background:var(--text-main); color:white; font-weight:800; border:none; cursor:pointer;">💾 Save Account Changes</button>
         </form>
+
+        <div style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #fee2e2;">
+            <form method="POST" onsubmit="return confirm('⚠️ DANGER ZONE: This will permanently delete this customer and ALL their order history. This cannot be undone. Proceed?')">
+                <input type="hidden" name="action" value="delete_customer">
+                <input type="hidden" name="customer_id" value="${data.customer_id}">
+                <button type="submit" style="width:100%; padding:12px; border-radius:12px; background:#fef2f2; color:#b91c1c; font-weight:700; border:1px solid #fecdd3; cursor:pointer; font-size:0.85rem; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+                    🗑️ Delete Account Permanently
+                </button>
+            </form>
+        </div>
     `;
 }
 

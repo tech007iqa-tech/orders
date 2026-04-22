@@ -92,6 +92,10 @@
 
     <div class="container <?= $is_new_order || $view === 'orders' || $view === 'warehouse' ? 'order-view' : '' ?>" role="main">
         <?php
+        // Global State Initialization
+        $selected_sector = $_GET['sector'] ?? 'Laptops';
+        $selected_loc = $_GET['loc'] ?? null;
+
         // Order Creation Logic
         if (isset($_GET['action']) && $_GET['action'] === 'create_new_order' && isset($_GET['customer_id'])) {
             $db_dir = 'assets/db';
@@ -123,6 +127,7 @@
                         <span class="loc-change">Change</span>
                     </a>
                 </div>
+            <?php else: "";?>
             <?php endif; ?><hr />
     <nav class="breadcrumbs">
             <a href="../app/"

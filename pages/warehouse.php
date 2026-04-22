@@ -30,6 +30,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 
+    if ($_POST['action'] === 'delete_zone' && isset($_POST['old_loc'])) {
+        $old_loc = $_POST['old_loc'];
+        // Bulk delete all items in this zone
+        $stmt = $conn_wh->prepare("DELETE FROM inventory WHERE location_code = ?");
+        $stmt->execute([$old_loc]);
+        header("Location: index.php?view=warehouse&sector=" . urlencode($selected_sector) . "&msg=zone_deleted");
+        exit();
+    }
+
     if ($_POST['action'] === 'add_inventory' || $_POST['action'] === 'edit_inventory') {
         $brand = $_POST['brand'];
         $model = $_POST['model'];
@@ -434,6 +443,7 @@ if ($selected_loc) {
                                 elseif($_GET['msg'] === 'updated') echo "Entry updated successfully!";
                                 elseif($_GET['msg'] === 'deleted') echo "Entry removed from stock.";
                                 elseif($_GET['msg'] === 'zone_renamed') echo "Working zone renamed successfully!";
+                                elseif($_GET['msg'] === 'zone_deleted') echo "Working zone and all its items have been deleted.";
                             ?>
                         </span>
                         <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:#15803d; cursor:pointer; font-size:1.2rem; line-height:1; padding:0 5px; opacity:0.5;">&times;</button>
@@ -600,7 +610,14 @@ if ($selected_loc) {
 <!-- warehouse.js is now loaded globally in index.php -->
 <!-- Rename Zone Modal -->
 <div id="rename-modal" class="modal-overlay no-print" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:1000; align-items:center; justify-content:center;" onclick="if(event.target===this) closeRenameModal()">
-    <div style="background:white; border-radius:20px; width:90%; max-width:400px; padding:25px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
+    <div style="background:white; border-radius:20px; width:90%; max-width:400px; padding:25px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); position:relative;">
+        <!-- Hidden Delete Feature -->
+        <form method="POST" id="delete-zone-form" onsubmit="return confirm('CRITICAL ACTION: This will PERMANENTLY DELETE ALL ITEMS in this zone. This cannot be undone. Proceed?');">
+            <input type="hidden" name="action" value="delete_zone">
+            <input type="hidden" name="old_loc" id="delete-zone-loc">
+            <button type="submit" class="btn-hidden-delete" title="Hidden: Delete Zone" style="position:absolute; top:20px; right:20px; background:none; border:none; cursor:pointer; font-size:1.1rem; opacity:0.1; transition:opacity 0.3s, transform 0.2s; padding:5px;">🗑️</button>
+        </form>
+
         <h3 style="font-weight:900; margin-bottom:15px;">✏️ Rename Working Zone</h3>
         <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">All items currently in this zone will be moved to the new name.</p>
         <form method="POST">
@@ -621,6 +638,7 @@ if ($selected_loc) {
 <script>
     function openRenameModal(loc) {
         document.getElementById('rename-old-loc').value = loc;
+        document.getElementById('delete-zone-loc').value = loc;
         document.getElementById('rename-new-loc').value = loc;
         document.getElementById('rename-modal').style.display = 'flex';
         document.getElementById('rename-new-loc').focus();
@@ -634,6 +652,7 @@ if ($selected_loc) {
     style.textContent = `
         .loc-item-wrapper:hover .btn-rename-zone { opacity: 1 !important; }
         .btn-rename-zone:hover { transform: scale(1.1); background: #f8fafc !important; }
+        .btn-hidden-delete:hover { opacity: 0.8 !important; transform: scale(1.2); color: #ef4444; }
     `;
     document.head.appendChild(style);
 

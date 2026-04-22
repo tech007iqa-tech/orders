@@ -1,8 +1,4 @@
 /**
- * IQA Metal — Orders Registry Logic
- */
-
-/**
  * Filters the global batch list based on search input
  */
 function filterOrders() {
@@ -10,38 +6,75 @@ function filterOrders() {
     if (!input) return;
 
     const filter = input.value.toLowerCase();
-    const cards = document.getElementsByClassName('order-card');
+    const rows = document.getElementsByClassName('order-row');
     let hasResults = false;
 
-    for (let i = 0; i < cards.length; i++) {
-        const searchBlob = cards[i].getAttribute('data-search') || "";
+    for (let i = 0; i < rows.length; i++) {
+        const searchBlob = rows[i].getAttribute('data-search') || "";
         if (searchBlob.includes(filter)) {
-            cards[i].style.display = "";
+            rows[i].style.display = "";
             hasResults = true;
         } else {
-            cards[i].style.display = "none";
+            rows[i].style.display = "none";
         }
     }
 
     // Handle empty state during search
     let emptyState = document.querySelector('.orders-empty-state');
-    const grid = document.getElementById('orders-grid');
+    const tbody = document.getElementById('orders-list');
 
     if (!hasResults) {
-        if (!emptyState && grid) {
-            emptyState = document.createElement('div');
+        if (!emptyState && tbody) {
+            emptyState = document.createElement('tr');
             emptyState.className = 'orders-empty-state';
-            emptyState.style.cssText = 'grid-column: 1/-1; padding: 60px; text-align: center; background: white; border-radius: 20px; border: 2px dashed #eee; color: #94a3b8; font-weight: 600;';
-            grid.appendChild(emptyState);
+            const td = document.createElement('td');
+            td.colSpan = 5;
+            td.style.cssText = 'padding: 60px; text-align: center; color: #94a3b8; font-weight: 600;';
+            emptyState.appendChild(td);
+            tbody.appendChild(emptyState);
         }
         
         if (emptyState) {
-            emptyState.style.display = 'block';
-            emptyState.innerText = `No batches found matching "${input.value}"`;
+            emptyState.style.display = '';
+            emptyState.querySelector('td').innerText = `No batches found matching "${input.value}"`;
         }
     } else if (emptyState) {
         emptyState.style.display = 'none';
     }
+}
+
+/**
+ * Sorts the orders table based on column index
+ * @param {number} n 
+ */
+function sortOrdersTable(n) {
+    const table = document.querySelector(".orders-table");
+    const tbody = table.querySelector("tbody");
+    const rows = Array.from(tbody.querySelectorAll("tr.order-row"));
+    
+    // Determine sort direction
+    const currentDir = table.getAttribute("data-sort-dir") === "asc" ? "desc" : "asc";
+    table.setAttribute("data-sort-dir", currentDir);
+    const multiplier = currentDir === "asc" ? 1 : -1;
+
+    rows.sort((a, b) => {
+        const x = a.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
+        const y = b.getElementsByTagName("TD")[n].innerText.trim().toLowerCase();
+
+        // Special handling for dates (column index 2)
+        if (n === 2) {
+            const dateX = new Date(x);
+            const dateY = new Date(y);
+            return (dateX - dateY) * multiplier;
+        }
+
+        if (x < y) return -1 * multiplier;
+        if (x > y) return 1 * multiplier;
+        return 0;
+    });
+
+    // Re-append rows in sorted order
+    rows.forEach(row => tbody.appendChild(row));
 }
 
 /**
@@ -52,7 +85,7 @@ function filterOrders() {
 async function updateOrderStatus(select, orderId) {
     const newStatus = select.value;
     const originalValue = select.getAttribute('data-original-value');
-    const badge = select.closest('.order-card').querySelector('.order-badge');
+    const badge = select.closest('.order-row').querySelector('.order-badge');
 
     try {
         select.disabled = true;

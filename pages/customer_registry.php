@@ -66,6 +66,47 @@ try {
         exit();
     }
 
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'delete_customer') {
+        $cid = $_POST['customer_id'];
+        
+        // 1. Delete items associated with customer's orders
+        $stmt_ids = $conn_orders->prepare("SELECT order_id FROM orders WHERE customer_id = ?");
+        $stmt_ids->execute([$cid]);
+        $order_ids = $stmt_ids->fetchAll(PDO::FETCH_COLUMN);
+        
+        if (!empty($order_ids)) {
+            $placeholders = implode(',', array_fill(0, count($order_ids), '?'));
+            $stmt_del_items = $conn_orders->prepare("DELETE FROM items WHERE order_id IN ($placeholders)");
+            $stmt_del_items->execute($order_ids);
+        }
+        
+        // 2. Delete the orders themselves
+        $stmt_del_orders = $conn_orders->prepare("DELETE FROM orders WHERE customer_id = ?");
+        $stmt_del_orders->execute([$cid]);
+        
+        // 3. Delete the customer record
+        $stmt_del_cust = $conn->prepare("DELETE FROM customers WHERE customer_id = ?");
+        $stmt_del_cust->execute([$cid]);
+        
+        header("Location: index.php?msg=customer_deleted");
+        exit();
+    }
+
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'delete_order') {
+        $oid = $_POST['order_id'];
+        
+        // 1. Delete items from the order
+        $stmt_del_items = $conn_orders->prepare("DELETE FROM items WHERE order_id = ?");
+        $stmt_del_items->execute([$oid]);
+        
+        // 2. Delete the order itself
+        $stmt_del_orders = $conn_orders->prepare("DELETE FROM orders WHERE order_id = ?");
+        $stmt_del_orders->execute([$oid]);
+        
+        header("Location: index.php?msg=order_deleted");
+        exit();
+    }
+
 } catch (PDOException $e) {
     die("Database Connection failed: " . $e->getMessage());
 }
@@ -79,6 +120,18 @@ try {
         <h1>Active Customers</h1>
         <p class="subtitle">Select a customer below or register a new one to begin.</p>
     </header>
+
+    <?php if (isset($_GET['msg']) && $_GET['msg'] === 'customer_deleted'): ?>
+        <div id="status-msg" style="background: #fef2f2; color: #991b1b; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; border: 1px solid #fecdd3; display: flex; justify-content: space-between; align-items: center;">
+            <span>🗑️ Customer and all associated orders have been permanently removed.</span>
+            <button onclick="this.parentElement.style.display='none'" style="background:none; border:none; color:#991b1b; cursor:pointer; font-weight:900;">✕</button>
+        </div>
+    <?php elseif (isset($_GET['msg']) && $_GET['msg'] === 'order_deleted'): ?>
+        <div id="status-msg" style="background: #fffbeb; color: #92400e; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; border: 1px solid #fde68a; display: flex; justify-content: space-between; align-items: center;">
+            <span>🗑️ The specific order and its items have been successfully deleted.</span>
+            <button onclick="this.parentElement.style.display='none'" style="background:none; border:none; color:#92400e; cursor:pointer; font-weight:900;">✕</button>
+        </div>
+    <?php endif; ?>
 
     <div class="registry-actions" style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
         <a href="index.php?view=register" class="btn-register" style="margin:0;">+ Register New Customer</a>
@@ -190,10 +243,21 @@ try {
                         <div class='cust-avatar'>{$initial}</div>
                         <div class='cust-main'>
                              <div class='cust-name' onclick='showProfile(event, {$json_data})'>" . htmlspecialchars($c['company_name']) . "</div>
-                            <div class='cust-id'>" . htmlspecialchars($c['customer_id']) . "</div>
+                            <div class='cust-id'>" . htmlspecialchars($c['customer_id']) . " " . (!empty($c['contact_person']) ? "• 👤 " . htmlspecialchars($c['contact_person']) : "") . "</div>
                             <div class='cust-meta-row'>
                                 <span class='badge badge-completed'>{$c['completed_count']} Orders</span>
+                                <span class='badge status-active' style='background:#f0f9ff; color:#0369a1;'>💰 $" . number_format($c['lifetime_value'], 0) . "</span>
                                 <span class='badge status-idle'>Last Order: " . (!empty($c['orders_list']) ? date('M d, Y', strtotime($c['orders_list'][0]['created_at'])) : 'None') . "</span>
+                            </div>
+                            <div class='crm-summary-row' style='display:flex; gap:25px; margin-top:10px; padding-top:8px; border-top:1px solid #f1f5f9;'>
+                                <div class='crm-stat'>
+                                    <div style='font-size:0.6rem; font-weight:800; color:#94a3b8; text-transform:uppercase;'>📅 Next Callback</div>
+                                    <div style='font-size:0.75rem; font-weight:700; color:" . (!empty($c['callback_date']) ? "#be123c" : "#64748b") . ";'>" . (!empty($c['callback_date']) ? htmlspecialchars($c['callback_date']) : "Not Set") . "</div>
+                                </div>
+                                <div class='crm-stat'>
+                                    <div style='font-size:0.6rem; font-weight:800; color:#94a3b8; text-transform:uppercase;'>✉️ Last Contact</div>
+                                    <div style='font-size:0.75rem; font-weight:700; color:#64748b;'>" . (!empty($c['message_date']) ? htmlspecialchars($c['message_date']) : "Not Set") . "</div>
+                                </div>
                             </div>
                         </div>
                         <div class='card-actions'>

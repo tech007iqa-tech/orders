@@ -48,67 +48,83 @@ try {
     </header>
 
     <!-- Live Search Input -->
-    <div class="orders-search-wrapper">
+    <div class="orders-search-wrapper" style="margin-bottom: 25px;">
         <i class="search-icon">🔍</i>
         <input type="text" id="order-search" placeholder="Search by Order ID, Company, or Customer ID..." aria-label="Search orders" onkeyup="filterOrders()">
     </div>
 
-    <div class="orders-grid" id="orders-grid">
-        <?php if (count($orders) > 0): ?>
-            <?php foreach ($orders as $order): 
-                $c_stmt = $conn_c->prepare("SELECT company_name FROM customers WHERE customer_id = ?");
-                $c_stmt->execute([$order['customer_id']]);
-                $company = $c_stmt->fetchColumn() ?: 'Unknown Account';
-                $status = strtolower($order['status']);
-                
-                // Combine all searchable terms into a single attribute for efficiency
-                $search_blob = strtolower($order['order_id'] . " " . $company . " " . $order['customer_id']);
-
-                $status_class = "status-" . $status;
-            ?>
-            <div class="order-card" data-search="<?= htmlspecialchars($search_blob) ?>">
-                <!-- Status Banner -->
-                <div class="order-card-header">
-                    <span class="order-badge <?= $status_class ?>">
-                        <?= htmlspecialchars($status) ?>
-                    </span>
-                    <div class="order-timestamp">
-                        <?= date('M d, Y', strtotime($order['created_at'])) ?>
-                    </div>
-                </div>
-
-                <!-- Account Info -->
-                <div class="order-account-info">
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px;">
-                        <div class="order-company-title"><?= htmlspecialchars($company) ?></div>
-                        <button type="button" class="btn-transfer-small no-print" onclick="openTransferModal('<?= htmlspecialchars($order['order_id']) ?>', '<?= htmlspecialchars($order['customer_id']) ?>')" title="Transfer to another customer" style="background:none; border:none; cursor:pointer; font-size: 0.8rem; opacity:0.5;">⇄</button>
-                    </div>
-                    <div class="order-id-meta"><?= htmlspecialchars($order['order_id']) ?></div>
-                </div>
-
-                    <div class="order-action-row">
-                        <div class="status-form">
-                            <div class="select-wrapper">
-                                <select name="new_status" class="order-status-select" 
-                                        onchange="updateOrderStatus(this, '<?= $order['order_id'] ?>')"
-                                        data-original-value="<?= htmlspecialchars($status) ?>">
-                                    <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active</option>
-                                    <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
-                                    <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Paid</option>
-                                    <option value="dispatched" <?= $status === 'dispatched' ? 'selected' : '' ?>>Dispatched</option>
-                                    <option value="canceled" <?= $status === 'canceled' ? 'selected' : '' ?>>Canceled</option>
-                                    <option value="finalized" <?= $status === 'finalized' ? 'selected' : '' ?>>Finalized</option>
-                                </select>
+    <div class="table-container" style="background: white; border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; box-shadow: var(--shadow-sm);">
+        <table class="orders-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background: #1e293b !important;">
+                    <th style="background: #1e293b !important; color: white !important; padding: 16px 24px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; cursor:pointer; letter-spacing:0.05em; border:none;" onclick="sortOrdersTable(0)">Batch ID ⇅</th>
+                    <th style="background: #1e293b !important; color: white !important; padding: 16px 24px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; cursor:pointer; letter-spacing:0.05em; border:none;" onclick="sortOrdersTable(1)">Account / Customer ⇅</th>
+                    <th style="background: #1e293b !important; color: white !important; padding: 16px 24px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; cursor:pointer; letter-spacing:0.05em; border:none;" onclick="sortOrdersTable(2)">Date Created ⇅</th>
+                    <th style="background: #1e293b !important; color: white !important; padding: 16px 24px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing:0.05em; border:none;">Current Status</th>
+                    <th style="background: #1e293b !important; color: white !important; padding: 16px 24px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; text-align: right; letter-spacing:0.05em; border:none;">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="orders-list">
+                <?php if (count($orders) > 0): ?>
+                    <?php foreach ($orders as $order): 
+                        $c_stmt = $conn_c->prepare("SELECT company_name FROM customers WHERE customer_id = ?");
+                        $c_stmt->execute([$order['customer_id']]);
+                        $company = $c_stmt->fetchColumn() ?: 'Unknown Account';
+                        $status = strtolower($order['status']);
+                        $search_blob = strtolower($order['order_id'] . " " . $company . " " . $order['customer_id']);
+                        $status_class = "status-" . $status;
+                    ?>
+                    <tr class="order-row" data-search="<?= htmlspecialchars($search_blob) ?>" style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;">
+                        <td style="padding: 20px 24px;">
+                            <div style="font-weight: 800; color: var(--text-main); font-size: 0.95rem; font-family: monospace;"><?= htmlspecialchars($order['order_id']) ?></div>
+                        </td>
+                        <td style="padding: 20px 24px;">
+                            <div style="display:flex; align-items:center; gap: 8px;">
+                                <div style="font-weight: 700; color: var(--text-main);"><?= htmlspecialchars($company) ?></div>
+                                <button type="button" class="btn-transfer-small no-print" onclick="openTransferModal('<?= htmlspecialchars($order['order_id']) ?>', '<?= htmlspecialchars($order['customer_id']) ?>')" title="Transfer" style="background:none; border:none; cursor:pointer; font-size: 0.8rem; opacity:0.3; transition: opacity 0.2s;">⇄</button>
                             </div>
-                        </div>
-                    <a href="checkout.php?customer_id=<?= urlencode($order['customer_id']) ?>&order_id=<?= urlencode($order['order_id']) ?>" class="btn-order-view">
-                        <span>View Details</span>
-                        <i class="arrow-icon">→</i>
-                    </a>
-                </div>
-            </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+                            <div style="font-size: 0.7rem; color: #94a3b8; font-family: monospace; margin-top: 2px;"><?= htmlspecialchars($order['customer_id']) ?></div>
+                        </td>
+                        <td style="padding: 20px 24px;">
+                            <div style="font-size: 0.85rem; font-weight: 600; color: #64748b;"><?= date('M d, Y', strtotime($order['created_at'])) ?></div>
+                        </td>
+                        <td style="padding: 20px 24px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span class="order-badge <?= $status_class ?>" style="min-width: 80px; text-align: center;">
+                                    <?= htmlspecialchars($status) ?>
+                                </span>
+                                <div class="select-wrapper" style="position: relative;">
+                                    <select name="new_status" class="order-status-select" 
+                                            onchange="updateOrderStatus(this, '<?= $order['order_id'] ?>')"
+                                            data-original-value="<?= htmlspecialchars($status) ?>"
+                                            style="height: 32px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 700; padding: 0 10px; background: #f8fafc; cursor: pointer;">
+                                        <option value="active" <?= $status === 'active' ? 'selected' : '' ?>>Active</option>
+                                        <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                        <option value="paid" <?= $status === 'paid' ? 'selected' : '' ?>>Paid</option>
+                                        <option value="dispatched" <?= $status === 'dispatched' ? 'selected' : '' ?>>Dispatched</option>
+                                        <option value="canceled" <?= $status === 'canceled' ? 'selected' : '' ?>>Canceled</option>
+                                        <option value="finalized" <?= $status === 'finalized' ? 'selected' : '' ?>>Finalized</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 20px 24px; text-align: right;">
+                            <a href="checkout.php?customer_id=<?= urlencode($order['customer_id']) ?>&order_id=<?= urlencode($order['order_id']) ?>" 
+                               class="btn-order-view" 
+                               style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; background: #f1f5f9; color: #475569; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 0.85rem; transition: all 0.2s;">
+                                <span>Details</span>
+                                <i style="font-style: normal; font-size: 1.1rem; line-height: 1;">→</i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="5" style="padding: 60px; text-align: center; color: #94a3b8; font-weight: 600;">No batches found in this category.</td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 
