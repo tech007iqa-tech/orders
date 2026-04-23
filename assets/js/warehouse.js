@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
             msgBanner.style.opacity = '0';
             msgBanner.style.transform = 'translateY(-10px)';
             setTimeout(() => msgBanner.remove(), 500);
-            
+
             // Clean URL without refresh
             const url = new URL(window.location);
             if (url.searchParams.has('msg')) {
@@ -67,7 +67,7 @@ function fillLastEnteredData() {
 
     // Direct mapping for common fields
     const fields = ['brand', 'model', 'quantity', 'condition', 'notes', 'cpu', 'gpu', 'ram', 'storage', 'battery', 'windows', 'series', 'gen', 'cpu_gen', 'gaming_category'];
-    
+
     fields.forEach(f => {
         if (form[f] && data[f] !== undefined) {
             form[f].value = data[f];
@@ -180,12 +180,12 @@ function initWarehouseDatalists() {
         modelIn.addEventListener('input', (e) => {
             if (brandIn && brandIn.value === '') {
                 const val = e.target.value.toLowerCase();
-                if (val.length < 3) return; 
+                if (val.length < 3) return;
 
                 for (const [brand, data] of Object.entries(targetInventory)) {
-                    const found = (data.models || []).some(m => m.toLowerCase() === val) || 
-                                  (data.series || []).some(s => s.toLowerCase() === val);
-                    
+                    const found = (data.models || []).some(m => m.toLowerCase() === val) ||
+                        (data.series || []).some(s => s.toLowerCase() === val);
+
                     if (found) {
                         brandIn.value = brand;
                         brandIn.dispatchEvent(new Event('change'));
@@ -293,7 +293,7 @@ function filterGateLocations() {
         const item = items[i];
         const wrapper = item.closest('.loc-item-wrapper') || item;
         const locName = item.getAttribute('data-loc-name') || "";
-        
+
         if (locName.includes(filter)) {
             wrapper.style.display = "";
             found++;
@@ -327,10 +327,10 @@ function sortGateLocations() {
 
         const nameA = itemA.getAttribute('data-loc-name') || "";
         const nameB = itemB.getAttribute('data-loc-name') || "";
-        
-        return sortVal === 'asc' 
-            ? nameA.localeCompare(nameB, undefined, {numeric: true, sensitivity: 'base'})
-            : nameB.localeCompare(nameA, undefined, {numeric: true, sensitivity: 'base'});
+
+        return sortVal === 'asc'
+            ? nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' })
+            : nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
     });
 
     // Re-append in order
@@ -455,7 +455,7 @@ function downloadWarehouseCSV() {
             const model = card.getAttribute('data-model') || '';
             const qtyElement = card.querySelector('.qty-pill');
             const qty = qtyElement ? qtyElement.innerText.trim() : '0';
-            
+
             const locTag = card.querySelector('.location-tag');
             const itemLoc = locTag ? locTag.innerText.trim() : '';
 
@@ -464,9 +464,22 @@ function downloadWarehouseCSV() {
             if (card.getAttribute('data-sector-theme') === 'Desktops') {
                 cpuGen = specs.cpu_gen || '';
             }
-            const fullDesc = (specs.condition || "") + (specs.notes ? " - " + specs.notes : "");
-
             const sectorTheme = card.getAttribute('data-sector-theme') || 'Laptops';
+            
+            // Build a richer description for the CSV (includes requested battery info)
+            let specHighlights = "";
+            if (sectorTheme === 'Laptops') {
+                if (specs.ram) specHighlights += ` | RAM: ${specs.ram}`;
+                if (specs.storage) specHighlights += ` | STO: ${specs.storage}`;
+                // Explicit battery status as requested
+                specHighlights += ` | Battery: ${specs.battery || "No Battery/Unchecked"}`;
+            } else if (sectorTheme === 'Gaming') {
+                if (specs.gpu) specHighlights += ` | GPU: ${specs.gpu}`;
+                if (specs.ram) specHighlights += ` | RAM: ${specs.ram}`;
+            }
+
+            const fullDesc = (specs.condition || "") + specHighlights + (specs.notes ? " - " + specs.notes : "");
+
             let itemType = "Laptop";
             if (sectorTheme === 'Desktops') itemType = "Desktop";
             else if (sectorTheme === 'Gaming') itemType = "Gaming";

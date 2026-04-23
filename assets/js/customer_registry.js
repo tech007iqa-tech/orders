@@ -373,3 +373,27 @@ function closeProfile() {
         document.body.style.overflow = '';
     }
 }
+/**
+ * Auto-select customer from localStorage on load (Bridge from Batch Registry)
+ */
+window.addEventListener('load', () => {
+    const targetId = localStorage.getItem('active_customer_id');
+    
+    if (targetId) {
+        localStorage.removeItem('active_customer_id');
+        const cards = document.getElementsByClassName('cust-card');
+        for (let card of cards) {
+            const rawData = card.getAttribute('data-customer');
+            if (rawData) {
+                try {
+                    const data = JSON.parse(rawData);
+                    if (data.customer_id === targetId) {
+                        showDetails(card);
+                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        break;
+                    }
+                } catch(e) {}
+            }
+        }
+    }
+});

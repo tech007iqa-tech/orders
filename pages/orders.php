@@ -17,9 +17,9 @@ try {
 
     // Fetch all orders with customer details
     if ($show_type === 'completed') {
-        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status IN ('finalized', 'paid', 'dispatched', 'canceled') ORDER BY o.created_at DESC");
+        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status IN ('finalized', 'canceled') ORDER BY o.created_at DESC");
     } else {
-        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status NOT IN ('finalized', 'paid', 'dispatched', 'canceled') OR o.status IS NULL ORDER BY o.created_at DESC");
+        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status NOT IN ('finalized', 'canceled') OR o.status IS NULL ORDER BY o.created_at DESC");
     }
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -80,7 +80,7 @@ try {
                         </td>
                         <td style="padding: 20px 24px;">
                             <div style="display:flex; align-items:center; gap: 8px;">
-                                <div style="font-weight: 700; color: var(--text-main);"><?= htmlspecialchars($company) ?></div>
+                                <a href="index.php#customer-details" onclick="localStorage.setItem('active_customer_id', '<?= $order['customer_id'] ?>')"><div style="font-weight: 700; color: var(--text-main);"><?= htmlspecialchars($company) ?></div></a>
                                 <button type="button" class="btn-transfer-small no-print" onclick="openTransferModal('<?= htmlspecialchars($order['order_id']) ?>', '<?= htmlspecialchars($order['customer_id']) ?>')" title="Transfer" style="background:none; border:none; cursor:pointer; font-size: 0.8rem; opacity:0.3; transition: opacity 0.2s;">⇄</button>
                             </div>
                             <div style="font-size: 0.7rem; color: #94a3b8; font-family: monospace; margin-top: 2px;"><?= htmlspecialchars($order['customer_id']) ?></div>

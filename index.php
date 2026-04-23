@@ -29,6 +29,7 @@
             'register'  => ['page' => 'pages/new_customer.php',     'css' => 'customer_registry.css'],
             'orders'    => ['page' => 'pages/orders.php',           'css' => 'orders.css'],
             'warehouse' => ['page' => 'pages/warehouse.php',        'css' => 'warehouse.css'],
+            'import_warehouse' => ['page' => 'pages/import_warehouse.php', 'css' => 'warehouse.css'],
             'settings'  => ['page' => 'pages/settings.php',         'css' => 'style.css'],
             'default'   => ['page' => 'pages/customer_registry.php', 'css' => 'customer_registry.css'],
             'new_order' => ['page' => 'pages/new_order.php',         'css' => 'new_order.css']

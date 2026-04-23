@@ -14,8 +14,11 @@ Manage the entire B2B database from a high-performance centralized interface.
     - **Session Memory**: The system remembers your sort preference as you navigate.
     - **Default View**: Optimized to show **Recent Purchases** first.
 - **Live Business Intelligence**:
-    - **Lifetime Value (LTV)**: Automatically calculated total gross value.
-    - **Order History**: active vs. completed batches with deep links.
+    - **Lifetime Value (LTV)**: Automatically calculated total gross value displayed as a vibrant currency badge.
+    - **Order History**: Real-time summary of active vs. completed batches with deep links.
+    - **CRM Summary**: Track **📅 Next Callback** and **✉️ Last Contact** dates directly on each customer card for better relationship management.
+- **Account Management**:
+    - **Secure Cascading Deletion**: Permanently remove a customer and all their associated orders/items with a single action, protected by a safety confirmation prompt.
 
 ### 2. Batch Builder (Order Entry) — `pages/new_order.php`
 The central tool for adding hardware to active orders.
@@ -48,13 +51,16 @@ The final stage before manifest delivery.
     - **Smart Mapping**: Automatically sets the "Type" column based on the sector (Desktop, Gaming, etc.).
     - **Global View Column**: Adds a "Location" column when exporting from the Global Warehouse view.
 
-### 5. ODT Label Generation — `generate_odt.php`
+### 5. Global Batch Registry (Orders) — `pages/orders.php`
+Professional administrative oversight for all active and completed batches.
+- **High-Density Table View**: Replaced legacy card layout with a data-dense, professional HTML table for better oversight.
+- **Interactive Sorting**: Dynamic, client-side sorting for **Batch ID**, **Company/Account**, and **Date Created**.
+- **Smart Date Sorting**: The system understands chronological dates (e.g., "Apr 22, 2026") ensuring accurate historical sorting.
+- **Inline Status Management**: Update fulfillment states (Paid, Dispatched, etc.) directly from the table row via AJAX.
+- **Individual Order Deletion**: Remove specific batches and their items from the registry with a dedicated trash icon and confirmation gating.
+- **Order Transfer System**: Specialized utility for fixing assignment errors by relocating batches between accounts instantly.
 
-### 6. Order Transfer System
-A specialized utility for fixing assignment errors without manual data entry.
-- **Cross-Account Relocation**: Move any order (and its associated item entries) from one customer to another instantly.
-- **Global & Local Access**: Trigger transfers from the **Global Batch Registry** card view or directly from the **Checkout Manifest** bill-to area.
-- **Data Integrity**: Automatically synchronizes both the `orders` and `items` tables to ensure inventory history remains accurate.
+### 6. ODT Label Generation — `generate_odt.php`
 
 ### 7. System Settings
 Administrative control panel for system-wide configuration.

@@ -249,6 +249,9 @@ if ($selected_loc) {
                     <button type="button" onclick="downloadWarehouseCSV()" class="btn-export">
                         📊 Export CSV
                     </button>
+                    <button type="button" onclick="window.location.href='index.php?view=import_warehouse'" class="btn-export" style="background: var(--text-main); color: white; border: none;">
+                        📥 Import Bulk
+                    </button>
                 </div>
             </div>
 
@@ -345,6 +348,11 @@ if ($selected_loc) {
                                             <div class="status-row">
                                                 <span class="status-badge status-<?= $item['status'] ?>"><?= $item['status'] ?></span>
                                                 <span class="condition-label"><?= htmlspecialchars($specs['condition'] ?? 'Used') ?></span>
+                                                <?php if ($item['sector'] === 'Laptops'): ?>
+                                                    <span class="battery-badge <?= empty($specs['battery']) ? 'missing' : '' ?>" title="Battery Status">
+                                                        🔋 <?= !empty($specs['battery']) ? htmlspecialchars($specs['battery']) : 'Missing' ?>
+                                                    </span>
+                                                <?php endif; ?>
                                             </div>
                                             <div class="notes-text"><?= htmlspecialchars($specs['notes'] ?? '') ?></div>
                                         </div>
