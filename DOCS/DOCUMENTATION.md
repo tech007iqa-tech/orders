@@ -16,9 +16,13 @@ Manage the entire B2B database from a high-performance centralized interface.
 - **Live Business Intelligence**:
     - **Lifetime Value (LTV)**: Automatically calculated total gross value displayed as a vibrant currency badge.
     - **Order History**: Real-time summary of active vs. completed batches with deep links.
-    - **CRM Summary**: Track **📅 Next Callback** and **✉️ Last Contact** dates directly on each customer card for better relationship management.
+    - **CRM & Lead Hub** (`pages/leads.php`):
+    - **Priority Follow-ups**: A dedicated "Call Today" section that highlights leads with pending or overdue callback dates.
+    - **Historical Timeline**: A date-separated logging system that preserves every interaction with a customer in a scrollable timeline.
+    - **Automated Financial Intelligence**: Real-time calculation of **Total Balance** and **Last Order ID** from the orders database.
+    - **Lead Conversion**: Track accounts from initial "Lead" status through to "Active Customer" with custom source and interest tracking.
 - **Account Management**:
-    - **Secure Cascading Deletion**: Permanently remove a customer and all their associated orders/items with a single action, protected by a safety confirmation prompt.
+    - **Secure Cascading Deletion**: Permanently remove a customer and all their associated orders/items with a single action.
 
 ### 2. Batch Builder (Order Entry) — `pages/new_order.php`
 The central tool for adding hardware to active orders.
@@ -42,14 +46,19 @@ The final stage before manifest delivery.
   - 📊 **CSV Export**: Clean, Excel-ready data distribution with separate columns for Brand and Model.
 
 ### 4. Warehouse & Inventory Control — `pages/warehouse.php`
+- **Location Status Tracking**:
+    - **Operational States**: Every zone can be assigned a status like `Working`, `Audit`, `Warehoused`, or `Idle`.
+    - **Color-Coded Badges**: Visual indicators across the gate and header provide immediate context of zone activity.
+    - **Custom Statuses**: Users can define their own status types and associated colors.
+- **Advanced Sorting Engine**:
+    - **Weighted Status Sort**: Groups zones logically (Working first, Idle last) rather than just alphabetically.
+    - **Density Sorting**: Sort by "Most Items" or "Emptiest" to optimize shelf space utilization.
+    - **Persistent Preference**: The system remembers your chosen sort order using `localStorage`.
 - **Working Zone Management**: 
-    - Organizes stock into shelves/zones (location codes).
-    - **Rename Zone**: Bulk update all inventory items when a shelf is renamed via the Gate interface.
-- **Sector-Specific Logic**: Tailored forms for Laptops, Gaming, Desktops, and Electronics.
+    - **Bulk Rename**: Update all inventory items when a shelf is renamed via the Gate interface.
 - **Enhanced CSV Export**: 
-    - **Contextual Headers**: Includes the active location and a 📍 pin icon in the file header.
-    - **Smart Mapping**: Automatically sets the "Type" column based on the sector (Desktop, Gaming, etc.).
-    - **Global View Column**: Adds a "Location" column when exporting from the Global Warehouse view.
+    - **Smart Mapping**: Automatically sets the "Type" column based on the sector.
+    - **Metadata Rich**: Includes battery health status for laptop exports as requested.
 
 ### 5. Global Batch Registry (Orders) — `pages/orders.php`
 Professional administrative oversight for all active and completed batches.
@@ -100,6 +109,8 @@ Administrative control panel for system-wide configuration.
 ```bash
 ├── api/               # Decoupled JSON API endpoints
 │   ├── get_warehouse_stock.php
+│   ├── get_interaction_logs.php # Fetches CRM history for a customer
+│   ├── save_lead.php            # Updates CRM metadata and logs interactions
 │   ├── update_order_status.php
 │   └── transfer_order.php
 ├── assets/

@@ -21,22 +21,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'rename_zone' && isset($_POST['old_loc']) && isset($_POST['new_loc'])) {
         $old_loc = $_POST['old_loc'];
         $new_loc = trim($_POST['new_loc']);
+        $new_status = $_POST['location_status'] ?? 'Idle';
         
         if (!empty($new_loc)) {
-            $stmt = $conn_wh->prepare("UPDATE inventory SET location_code = ? WHERE location_code = ?");
-            $stmt->execute([$new_loc, $old_loc]);
-            header("Location: index.php?view=warehouse&sector=" . urlencode($selected_sector) . "&msg=zone_renamed");
-            exit();
+            $conn_wh->beginTransaction();
+            try {
+                // Update items
+                $stmt = $conn_wh->prepare("UPDATE inventory SET location_code = ? WHERE location_code = ?");
+                $stmt->execute([$new_loc, $old_loc]);
+                
+                // Update or Create location entry
+                $stmt_loc = $conn_wh->prepare("INSERT OR REPLACE INTO locations (location_code, status, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)");
+                $stmt_loc->execute([$new_loc, $new_status]);
+                
+                // If renamed, delete old location entry if it's different
+                if ($new_loc !== $old_loc) {
+                    $stmt_del = $conn_wh->prepare("DELETE FROM locations WHERE location_code = ?");
+                    $stmt_del->execute([$old_loc]);
+                }
+                
+                $conn_wh->commit();
+                header("Location: index.php?view=warehouse&sector=" . urlencode($selected_sector) . "&msg=zone_updated");
+                exit();
+            } catch (Exception $e) {
+                $conn_wh->rollBack();
+                die("Failed to update zone: " . $e->getMessage());
+            }
         }
+    }
+
+    if ($_POST['action'] === 'add_location_status' && isset($_POST['status_name'])) {
+        $name = trim($_POST['status_name']);
+        $color = $_POST['status_color'] ?? '#64748b';
+        if (!empty($name)) {
+            $stmt = $conn_wh->prepare("INSERT OR IGNORE INTO location_statuses (name, color) VALUES (?, ?)");
+            $stmt->execute([$name, $color]);
+        }
+        header("Location: index.php?view=warehouse&sector=" . urlencode($selected_sector) . "&msg=status_added");
+        exit();
     }
 
     if ($_POST['action'] === 'delete_zone' && isset($_POST['old_loc'])) {
         $old_loc = $_POST['old_loc'];
-        // Bulk delete all items in this zone
-        $stmt = $conn_wh->prepare("DELETE FROM inventory WHERE location_code = ?");
-        $stmt->execute([$old_loc]);
-        header("Location: index.php?view=warehouse&sector=" . urlencode($selected_sector) . "&msg=zone_deleted");
-        exit();
+        $conn_wh->beginTransaction();
+        try {
+            // Bulk delete items
+            $stmt = $conn_wh->prepare("DELETE FROM inventory WHERE location_code = ?");
+            $stmt->execute([$old_loc]);
+            
+            // Delete location tracking
+            $stmt_loc = $conn_wh->prepare("DELETE FROM locations WHERE location_code = ?");
+            $stmt_loc->execute([$old_loc]);
+            
+            $conn_wh->commit();
+            header("Location: index.php?view=warehouse&sector=" . urlencode($selected_sector) . "&msg=zone_deleted");
+            exit();
+        } catch (Exception $e) {
+            $conn_wh->rollBack();
+            die("Delete failed: " . $e->getMessage());
+        }
     }
 
     if ($_POST['action'] === 'add_inventory' || $_POST['action'] === 'edit_inventory') {
@@ -92,9 +135,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-// Fetch All Unique Locations
-$stmt_locs = $conn_wh->query("SELECT DISTINCT location_code FROM inventory ORDER BY location_code ASC");
-$existing_locs = $stmt_locs->fetchAll(PDO::FETCH_COLUMN);
+// Fetch All Unique Locations with Status
+$stmt_locs = $conn_wh->query("
+    SELECT l.*, 
+        (SELECT COUNT(*) FROM inventory i WHERE i.location_code = l.location_code) as item_count,
+        ls.color as status_color
+    FROM locations l
+    LEFT JOIN location_statuses ls ON l.status = ls.name
+    ORDER BY l.location_code ASC
+");
+$existing_locs = $stmt_locs->fetchAll(PDO::FETCH_ASSOC);
+
+// Fetch Available Statuses
+$all_statuses = $conn_wh->query("SELECT * FROM location_statuses ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch Sectors
 $sectors = $conn_wh->query("SELECT * FROM sectors")->fetchAll(PDO::FETCH_ASSOC);
@@ -112,6 +165,10 @@ if ($selected_loc) {
             $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
         }
     } else {
+        // Ensure location entry exists
+        $stmt_check = $conn_wh->prepare("INSERT OR IGNORE INTO locations (location_code, status) VALUES (?, 'Idle')");
+        $stmt_check->execute([$selected_loc]);
+
         $stmt_i = $conn_wh->prepare("SELECT * FROM inventory WHERE sector = ? AND location_code = ? ORDER BY id DESC");
         $stmt_i->execute([$selected_sector, $selected_loc]);
         $items = $stmt_i->fetchAll(PDO::FETCH_ASSOC);
@@ -131,9 +188,18 @@ if ($selected_loc) {
                 <h1>Warehouse Control Center</h1>
                 <p class="subtitle">Managing stock and locations across all inventory sectors.</p>
             </div>
-            <?php if ($selected_loc): ?>
-                <div class="active-loc-display">
-                    <div class="loc-label">Active Location</div>
+            <?php if ($selected_loc): 
+                $active_l_stmt = $conn_wh->prepare("SELECT l.*, ls.color FROM locations l LEFT JOIN location_statuses ls ON l.status = ls.name WHERE l.location_code = ?");
+                $active_l_stmt->execute([$selected_loc]);
+                $active_l = $active_l_stmt->fetch(PDO::FETCH_ASSOC);
+                $active_l_status = $active_l['status'] ?? 'Idle';
+                $active_l_color = $active_l['color'] ?? '#94a3b8';
+            ?>
+                <div class="active-loc-display" style="display:flex; align-items:center; gap:15px;">
+                    <div style="text-align:right;">
+                        <div class="loc-label">Active Location</div>
+                        <div style="font-size:0.65rem; font-weight:900; text-transform:uppercase; color:<?= $active_l_color ?>; letter-spacing:0.05em;"><?= htmlspecialchars($active_l_status) ?></div>
+                    </div>
                     <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>" class="loc-active-badge">
                         <span class="loc-pin">📍</span>
                         <span class="loc-text"><?= htmlspecialchars($selected_loc) ?></span>
@@ -162,18 +228,32 @@ if ($selected_loc) {
                             <select id="gate-loc-sort" onchange="sortGateLocations()" style="width: auto; height: 40px; font-size: 0.8rem; border-radius: 10px; padding: 0 12px; font-weight: 700; cursor: pointer; border: 1px solid var(--border-color); background: white; outline: none;">
                                 <option value="asc">Sort: A-Z</option>
                                 <option value="desc">Sort: Z-A</option>
+                                <option value="status">Sort: Status Group</option>
+                                <option value="count-desc">Sort: Most Items</option>
+                                <option value="count-asc">Sort: Emptiest</option>
                             </select>
                         </div>
                     </div>
                     
                     <div class="loc-grid" id="gate-loc-grid">
-                        <?php foreach ($existing_locs as $loc): ?>
+                        <?php foreach ($existing_locs as $loc): 
+                            $l_name = $loc['location_code'];
+                            $l_status = $loc['status'];
+                            $l_color = $loc['status_color'] ?: '#94a3b8';
+                            $l_count = (int)$loc['item_count'];
+                        ?>
                             <div class="loc-item-wrapper" style="position:relative;">
-                                <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>&loc=<?= urlencode($loc) ?>" class="loc-item gate-loc-item" data-loc-name="<?= htmlspecialchars(strtolower($loc)) ?>">
+                                <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>&loc=<?= urlencode($l_name) ?>" 
+                                   class="loc-item gate-loc-item" 
+                                   data-loc-name="<?= htmlspecialchars(strtolower($l_name)) ?>"
+                                   data-status="<?= htmlspecialchars(strtolower($l_status)) ?>"
+                                   data-count="<?= $l_count ?>">
+                                    <div style="position:absolute; top:8px; left:12px; font-size:0.6rem; font-weight:900; text-transform:uppercase; color:<?= $l_color ?>; letter-spacing:0.05em;"><?= htmlspecialchars($l_status) ?></div>
                                     <span class="loc-icon">📦</span>
-                                    <span class="loc-name"><?= htmlspecialchars($loc) ?></span>
+                                    <span class="loc-name"><?= htmlspecialchars($l_name) ?></span>
+                                    <div style="font-size:0.7rem; color:#94a3b8; font-weight:700;"><?= $l_count ?> Items</div>
                                 </a>
-                                <button type="button" onclick="openRenameModal('<?= htmlspecialchars($loc) ?>')" class="btn-rename-zone" style="position:absolute; top:5px; right:5px; background:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:0.7rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); opacity:0; transition:0.2s;">✏️</button>
+                                <button type="button" onclick='openRenameModal(<?= json_encode($loc) ?>)' class="btn-rename-zone" style="position:absolute; bottom:5px; right:5px; background:white; border:none; border-radius:50%; width:24px; height:24px; cursor:pointer; font-size:0.7rem; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.1); opacity:0; transition:0.2s;">✏️</button>
                             </div>
                         <?php endforeach; ?>
                         
@@ -618,41 +698,100 @@ if ($selected_loc) {
 <!-- warehouse.js is now loaded globally in index.php -->
 <!-- Rename Zone Modal -->
 <div id="rename-modal" class="modal-overlay no-print" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:1000; align-items:center; justify-content:center;" onclick="if(event.target===this) closeRenameModal()">
-    <div style="background:white; border-radius:20px; width:90%; max-width:400px; padding:25px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); position:relative;">
-        <!-- Hidden Delete Feature -->
+    <div style="background:white; border-radius:24px; width:95%; max-width:450px; padding:35px; box-shadow:var(--shadow-lg); position:relative;">
         <form method="POST" id="delete-zone-form" onsubmit="return confirm('CRITICAL ACTION: This will PERMANENTLY DELETE ALL ITEMS in this zone. This cannot be undone. Proceed?');">
             <input type="hidden" name="action" value="delete_zone">
             <input type="hidden" name="old_loc" id="delete-zone-loc">
             <button type="submit" class="btn-hidden-delete" title="Hidden: Delete Zone" style="position:absolute; top:20px; right:20px; background:none; border:none; cursor:pointer; font-size:1.1rem; opacity:0.1; transition:opacity 0.3s, transform 0.2s; padding:5px;">🗑️</button>
         </form>
 
-        <h3 style="font-weight:900; margin-bottom:15px;">✏️ Rename Working Zone</h3>
-        <p style="font-size:0.85rem; color:#64748b; margin-bottom:20px;">All items currently in this zone will be moved to the new name.</p>
+        <h2 style="font-weight:900; margin-bottom:10px; font-size:1.25rem;">📦 Manage Working Zone</h2>
+        <p style="font-size:0.85rem; color:#64748b; margin-bottom:25px;">Update the name or operational status of this location.</p>
+        
         <form method="POST">
             <input type="hidden" name="action" value="rename_zone">
             <input type="hidden" name="old_loc" id="rename-old-loc">
+            
             <div class="form-group" style="margin-bottom:20px;">
-                <label for="rename-new-loc" style="display:block; font-size:0.7rem; font-weight:800; text-transform:uppercase; margin-bottom:5px;">New Zone Name</label>
-                <input type="text" name="new_loc" id="rename-new-loc" required style="width:100%; height:44px; border-radius:10px; border:1px solid #ddd; padding:0 12px; font-weight:700;">
+                <label for="rename-new-loc" style="display:block; font-size:0.7rem; font-weight:800; text-transform:uppercase; margin-bottom:6px; color:#94a3b8;">Zone Name</label>
+                <input type="text" name="new_loc" id="rename-new-loc" required style="width:100%; height:46px; border-radius:12px; border:1px solid #ddd; padding:0 15px; font-weight:800; font-size:1rem;">
             </div>
-            <div style="display:flex; gap:10px;">
-                <button type="button" onclick="closeRenameModal()" style="flex:1; height:44px; border-radius:10px; border:1px solid #ddd; background:none; font-weight:800; cursor:pointer;">Cancel</button>
-                <button type="submit" style="flex:1; height:44px; border-radius:10px; border:none; background:var(--text-main); color:white; font-weight:800; cursor:pointer;">Rename Zone</button>
+
+            <div class="form-group" style="margin-bottom:30px;">
+                <label for="rename-status" style="display:block; font-size:0.7rem; font-weight:800; text-transform:uppercase; margin-bottom:6px; color:#94a3b8;">Location Status</label>
+                <select name="location_status" id="rename-status" style="width:100%; height:46px; border-radius:12px; border:1px solid #ddd; padding:0 15px; font-weight:700; cursor:pointer; background:#f8fafc;">
+                    <?php foreach ($all_statuses as $status): ?>
+                        <option value="<?= htmlspecialchars($status['name']) ?>"><?= htmlspecialchars($status['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <div style="margin-top:10px; text-align:right;">
+                    <a href="javascript:void(0)" onclick="toggleManageStatuses()" style="font-size:0.7rem; color:var(--accent-color); font-weight:800; text-decoration:none;">+ Add New Status Type</a>
+                </div>
+            </div>
+
+            <div id="manage-statuses-block" style="display:none; background:#f1f5f9; padding:20px; border-radius:16px; margin-bottom:25px; border:1px dashed #cbd5e1;">
+                <div style="font-size:0.7rem; font-weight:900; text-transform:uppercase; color:#64748b; margin-bottom:10px;">Create New Status</div>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="new-status-name" placeholder="Status Name" style="flex:2; height:38px; border-radius:8px; border:1px solid #cbd5e1; padding:0 10px; font-size:0.85rem;">
+                    <input type="color" id="new-status-color" value="#64748b" style="flex:0.5; height:38px; border:none; padding:0; background:none; cursor:pointer;">
+                    <button type="button" onclick="addNewStatusType()" style="flex:1; background:var(--accent-color); color:white; border:none; border-radius:8px; font-weight:800; font-size:0.75rem; cursor:pointer;">Add</button>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:12px;">
+                <button type="button" onclick="closeRenameModal()" style="flex:1; height:48px; border-radius:14px; border:1px solid #ddd; background:none; font-weight:800; cursor:pointer; color:#64748b;">Cancel</button>
+                <button type="submit" style="flex:1; height:48px; border-radius:14px; border:none; background:var(--text-main); color:white; font-weight:800; cursor:pointer; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">Update Zone</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-    function openRenameModal(loc) {
+    function openRenameModal(locData) {
+        // locData is now an object
+        const loc = locData.location_code;
+        const status = locData.status;
+        
         document.getElementById('rename-old-loc').value = loc;
         document.getElementById('delete-zone-loc').value = loc;
         document.getElementById('rename-new-loc').value = loc;
+        document.getElementById('rename-status').value = status;
+        
         document.getElementById('rename-modal').style.display = 'flex';
         document.getElementById('rename-new-loc').focus();
     }
+    
     function closeRenameModal() {
         document.getElementById('rename-modal').style.display = 'none';
+        document.getElementById('manage-statuses-block').style.display = 'none';
+    }
+
+    function toggleManageStatuses() {
+        const block = document.getElementById('manage-statuses-block');
+        block.style.display = block.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function addNewStatusType() {
+        const name = document.getElementById('new-status-name').value;
+        const color = document.getElementById('new-status-color').value;
+        if (!name) return;
+
+        const formData = new FormData();
+        formData.append('action', 'add_location_status');
+        formData.append('status_name', name);
+        formData.append('status_color', color);
+
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            });
+            if (response.ok) {
+                location.reload();
+            }
+        } catch (err) {
+            console.error("Failed to add status", err);
+        }
     }
 
     // Add CSS for the rename button visibility on hover

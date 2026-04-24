@@ -52,6 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cloneBtn && !localStorage.getItem('wh_last_entry')) {
         cloneBtn.style.display = 'none';
     }
+    // Restore sort preference
+    const savedSort = localStorage.getItem('wh_gate_sort');
+    const sortDropdown = document.getElementById('gate-loc-sort');
+    if (savedSort && sortDropdown) {
+        sortDropdown.value = savedSort;
+        sortGateLocations(); // Apply it immediately
+    }
 });
 
 /**
@@ -315,10 +322,26 @@ function sortGateLocations() {
     const grid = document.getElementById('gate-loc-grid');
     if (!grid) return;
 
-    // Get all children that are zone items or their wrappers
-    const items = Array.from(grid.children);
+    // Persist preference
+    localStorage.setItem('wh_gate_sort', sortVal);
+
+    // Add visual feedback
+    grid.classList.add('sorting');
+
+    setTimeout(() => {
+        // Get all children that are zone items or their wrappers
+        const items = Array.from(grid.children);
     const zoneItems = items.filter(el => el.classList.contains('loc-item-wrapper'));
     const newLocItem = items.find(el => el.classList.contains('new_loc') || el.classList.contains('new-loc'));
+
+    const statusPriority = {
+        'working': 1,
+        'audit': 2,
+        'shipping': 3,
+        'in-review': 4,
+        'warehoused': 5,
+        'idle': 6
+    };
 
     zoneItems.sort((a, b) => {
         const itemA = a.querySelector('.gate-loc-item');
@@ -327,15 +350,32 @@ function sortGateLocations() {
 
         const nameA = itemA.getAttribute('data-loc-name') || "";
         const nameB = itemB.getAttribute('data-loc-name') || "";
+        const countA = parseInt(itemA.getAttribute('data-count') || "0", 10);
+        const countB = parseInt(itemB.getAttribute('data-count') || "0", 10);
+        const statusA = itemA.getAttribute('data-status') || "idle";
+        const statusB = itemB.getAttribute('data-status') || "idle";
 
-        return sortVal === 'asc'
-            ? nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' })
-            : nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+        if (sortVal === 'asc') return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+        if (sortVal === 'desc') return nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+        
+        if (sortVal === 'count-desc') return countB - countA || nameA.localeCompare(nameB);
+        if (sortVal === 'count-asc') return countA - countB || nameA.localeCompare(nameB);
+        
+        if (sortVal === 'status') {
+            const prioA = statusPriority[statusA] || 99;
+            const prioB = statusPriority[statusB] || 99;
+            return prioA - prioB || nameA.localeCompare(nameB);
+        }
+        
+        return 0;
     });
 
-    // Re-append in order
-    zoneItems.forEach(el => grid.appendChild(el));
-    if (newLocItem) grid.appendChild(newLocItem);
+        // Re-append in order
+        zoneItems.forEach(el => grid.appendChild(el));
+        if (newLocItem) grid.appendChild(newLocItem);
+        
+        grid.classList.remove('sorting');
+    }, 300);
 }
 
 /**

@@ -470,6 +470,16 @@
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 12px;
     margin-top: 24px;
+    transition: all 0.5s ease;
+}
+
+.loc-item-wrapper {
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.loc-grid.sorting .loc-item-wrapper {
+    opacity: 0.5;
+    transform: scale(0.95);
 }
 
 .loc-item {

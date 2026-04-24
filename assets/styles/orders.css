@@ -1,4 +1,13 @@
 /* Premium Table View Enhancements */
+.orders-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 30px;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
 .table-container {
     margin-top: 20px;
     background: #ffffff;
@@ -82,6 +91,7 @@
     border: 1px solid transparent;
 }
 
+.status-draft { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
 .status-active { background: #e0e7ff; color: #4338ca; border-color: #c7d2fe; }
 .status-pending { background: #fef3c7; color: #b45309; border-color: #fde68a; }
 .status-paid { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
@@ -131,6 +141,38 @@
     border-color: transparent;
     transform: translateX(5px);
     box-shadow: 0 10px 20px -5px rgba(140, 198, 63, 0.4);
+}
+
+/* Premium Tabs System */
+.orders-tabs {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 6px;
+    border-radius: 16px;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.orders-tab-link {
+    padding: 10px 24px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #64748b;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+.orders-tab-link:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.orders-tab-link.active {
+    background: #ffffff;
+    color: var(--text-main);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 /* Animations */

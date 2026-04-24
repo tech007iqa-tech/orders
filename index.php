@@ -28,6 +28,7 @@
         $routes = [
             'register'  => ['page' => 'pages/new_customer.php',     'css' => 'customer_registry.css'],
             'orders'    => ['page' => 'pages/orders.php',           'css' => 'orders.css'],
+            'leads'     => ['page' => 'pages/leads.php',            'css' => 'leads.css'],
             'warehouse' => ['page' => 'pages/warehouse.php',        'css' => 'warehouse.css'],
             'import_warehouse' => ['page' => 'pages/import_warehouse.php', 'css' => 'warehouse.css'],
             'settings'  => ['page' => 'pages/settings.php',         'css' => 'style.css'],
@@ -81,6 +82,9 @@
         </nav>
 
         <nav class="breadcrumbs" style="display: flex; gap: 20px; align-items: center;">
+            <a href="index.php?view=leads" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'leads' ? 'active' : '' ?>" style="margin:0;">
+                🎯 Leads
+            </a>
             <a href="index.php?view=warehouse" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'warehouse' ? 'active' : '' ?>" style="margin:0;">
                 🏬 Warehouse
             </a>
@@ -91,7 +95,7 @@
         </nav>
     </div>
 
-    <div class="container <?= $is_new_order || $view === 'orders' || $view === 'warehouse' ? 'order-view' : '' ?>" role="main">
+    <div class="container <?= $is_new_order || $view === 'orders' || $view === 'warehouse' || $view === 'leads' ? 'order-view' : '' ?>" role="main">
         <?php
         // Global State Initialization
         $selected_sector = $_GET['sector'] ?? 'Laptops';
@@ -103,7 +107,7 @@
             $conn_o = new PDO("sqlite:" . $db_dir . "/orders.db");
             $new_order_id = 'ORD-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
 
-            $stmt = $conn_o->prepare("INSERT INTO orders (order_id, customer_id) VALUES (?, ?)");
+            $stmt = $conn_o->prepare("INSERT INTO orders (order_id, customer_id, status) VALUES (?, ?, 'active')");
             $stmt->execute([$new_order_id, $_GET['customer_id']]);
 
             header("Location: index.php?customer_id=" . urlencode($_GET['customer_id']) . "&order_id=" . $new_order_id);
@@ -166,6 +170,9 @@
     <script src="assets/js/new_order.js?v=<?= filemtime('assets/js/new_order.js') ?>" defer></script>
     <script src="assets/js/warehouse.js?v=<?= filemtime('assets/js/warehouse.js') ?>" defer></script>
     <script src="assets/js/customer_registry.js?v=<?= filemtime('assets/js/customer_registry.js') ?>" defer></script>
+    <?php if ($view === 'leads' && file_exists('assets/js/leads.js')): ?>
+    <script src="assets/js/leads.js?v=<?= filemtime('assets/js/leads.js') ?>" defer></script>
+    <?php endif; ?>
 </body>
 
 </html>

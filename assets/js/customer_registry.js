@@ -72,8 +72,9 @@ function renderDetailView(data) {
     const side = document.getElementById('side-details');
     if (!side) return;
 
-    const drafts = (data.orders_list || []).filter(o => !['finalized', 'paid', 'dispatched'].includes(o.status.toLowerCase()));
-    const history = (data.orders_list || []).filter(o => ['finalized', 'paid', 'dispatched'].includes(o.status.toLowerCase()));
+    const historyStatuses = ['finalized', 'paid', 'dispatched', 'canceled'];
+    const drafts = (data.orders_list || []).filter(o => !historyStatuses.includes(o.status.toLowerCase()));
+    const history = (data.orders_list || []).filter(o => historyStatuses.includes(o.status.toLowerCase()));
 
     const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 

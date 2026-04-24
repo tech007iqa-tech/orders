@@ -195,7 +195,7 @@ try {
             if (!empty($c['orders_list'])) {
                 $last_date = $c['orders_list'][0]['created_at'];
                 foreach ($c['orders_list'] as $o) {
-                    if (in_array(strtolower($o['status']), ['finalized', 'paid', 'dispatched'])) {
+                    if (in_array(strtolower($o['status']), ['finalized', 'paid', 'dispatched', 'canceled'])) {
                         $completed_count++;
                     } else {
                         $active_count++;

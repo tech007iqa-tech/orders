@@ -6,13 +6,15 @@ A modern, responsive web application for managing warehouse hardware inventory a
 
 ## ✨ Key Features
 
--   **Intelligent Customer Sorting**: Sort the registry by Date (Recent/Oldest), Name, Total Orders, or LTV, with session-based memory.
--   **Working Zone Management**: Organize stock by shelves/zones with the ability to **Bulk Rename** entire locations instantly.
--   **Enhanced Warehouse Exports**: CSVs now include active location headers (📍) and smart category mapping (Desktop, Gaming, etc.).
--   **B2B Manifest Generation**: Creates final, professional billing summaries with auto-calculated totals and unit prices.
+-   **CRM & Relationship Hub**: Full-page lead management with automated balance tracking and a detailed **Historical Interaction Timeline**.
+-   **Priority Follow-ups**: Automated "Call Today" logic that highlights accounts requiring immediate attention based on follow-up dates.
+-   **Warehouse Location Status**: Track the operational state of every zone (Working, Audit, Warehoused, Idle) with color-coded visual cues.
+-   **Smart Sorting Engine**: Advanced sorting in the Warehouse Gate by status priority, shelf density (item count), or alphabetical order, with persistent memory.
+-   **Intelligent Customer Registry**: Sort the registry by Date, Name, Total Orders, or LTV, with session-based memory.
+-   **Enhanced Warehouse Exports**: CSVs now include active location headers (📍), smart category mapping, and detailed battery health metadata.
 -   **Anti-Refresh Pattern (PRG)**: Implements the **Post/Redirect/Get** pattern for zero-error form submissions.
 -   **Zero-Config Backend**: Utilizes **SQLite** — completely portable, no server setup required.
--   **iOS Safari Optimized**: `16px` input enforcement, `100dvh` viewport fix, `-webkit-overflow-scrolling: touch`, and clipboard fallback.
+-   **iOS Safari Optimized**: `16px` input enforcement, `100dvh` viewport fix, and momentum scrolling support.
 
 ---
 
@@ -39,11 +41,12 @@ A modern, responsive web application for managing warehouse hardware inventory a
 ├── generate_odt.php            # 2×1 Thermal Label ODT generator (Flat XML, no ZipArchive)
 ├── pages/
 │   ├── customer_registry.php   # Customer list, search, and selection UI
+│   ├── leads.php               # CRM Hub: Lead tracking & interaction logs
 │   ├── new_customer.php        # Detailed customer registration module
-│   ├── new_order.php           # Core hardware intake, search & inline summary editing
+│   ├── new_order.php           # Core hardware intake & batch builder
 │   ├── orders.php              # Global batch fulfillment registry
-│   ├── warehouse.php           # Warehouse stock management and inventory
-│   └── settings.php           # Admin controls, staff management, maintenance tools
+│   ├── warehouse.php           # Warehouse stock & location management
+│   └── settings.php           # Admin controls & maintenance tools
 ├── core/
 │   ├── auth.php                # Session guard
 │   ├── login.php               # Login form
@@ -57,9 +60,10 @@ A modern, responsive web application for managing warehouse hardware inventory a
 │   │   ├── customer_registry.css # Account list & sidebar styles
 │   │   └── new_order.css       # Batch builder specific styling
 │   ├── js/
-│   │   ├── checkout.js         # All checkout manifest JS logic (externalized)
-│   │   ├── warehouse.js        # Warehouse inventory logic
-│   │   └── new_order.js        # Hardware inventory & UI population logic
+│   │   ├── checkout.js         # Manifest JS logic & modal editor
+│   │   ├── warehouse.js        # Warehouse logic, sorting & persistence
+│   │   ├── leads.js            # CRM interaction & timeline logic
+│   │   └── new_order.js        # Hardware inventory & UI logic
 │   ├── ts/                     # TypeScript source (legacy/dev reference)
 │   └── db/
 │       ├── customers.db        # SQLite: customer records (gitignored)

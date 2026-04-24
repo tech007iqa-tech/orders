@@ -16,10 +16,16 @@ try {
     $show_type = $_GET['type'] ?? 'active'; // 'active' vs 'completed'
 
     // Fetch all orders with customer details
+    $history_statuses = "'paid', 'dispatched', 'finalized', 'canceled'";
+    
     if ($show_type === 'completed') {
-        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status IN ('finalized', 'canceled') ORDER BY o.created_at DESC");
+        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status IN ($history_statuses) ORDER BY o.created_at DESC");
     } else {
-        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status NOT IN ('finalized', 'canceled') OR o.status IS NULL ORDER BY o.created_at DESC");
+        // Active orders: Anything not in history, OR finalized orders from the last 24 hours
+        $stmt = $conn->query("SELECT o.* FROM orders o 
+                              WHERE (o.status NOT IN ($history_statuses) OR o.status IS NULL) 
+                              OR (o.status = 'finalized' AND o.created_at > datetime('now', '-24 hours'))
+                              ORDER BY o.created_at DESC");
     }
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
