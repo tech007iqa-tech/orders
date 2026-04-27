@@ -1,15 +1,10 @@
-<?php include 'core/auth.php'; ?>
-<?php
+<?php 
+require_once 'core/database.php';
+include 'core/auth.php'; 
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-$db_dir = 'assets/db';
-if (!is_dir($db_dir)) {
-    mkdir($db_dir, 0777, true);
-}
-$db_items = $db_dir . '/orders.db';
-$db_cust = $db_dir . '/customers.db';
 
 if (!isset($_GET['customer_id'])) {
     header("Location: index.php");
@@ -19,10 +14,8 @@ if (!isset($_GET['customer_id'])) {
 $customer_id = $_GET['customer_id'];
 
 try {
-    $conn_items = new PDO("sqlite:" . $db_items);
-    $conn_cust = new PDO("sqlite:" . $db_cust);
-    $conn_items->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $conn_cust->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn_items = Database::orders();
+    $conn_cust = Database::customers();
 
     // Handle Order Transfer
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] === 'transfer_order') {

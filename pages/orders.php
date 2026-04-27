@@ -3,30 +3,42 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_dir = 'assets/db';
-$db_file = $db_dir . '/orders.db';
-$db_cust = $db_dir . '/customers.db';
-
 try {
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn_c = new PDO("sqlite:" . $db_cust);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::orders();
+    $conn_c = Database::customers();
 
     // Fetch Filtering parameters
     $show_type = $_GET['type'] ?? 'active'; // 'active' vs 'completed'
 
-    // Fetch all orders with customer details
+    // Fetch all orders with customer details using Cross-DB Join
     $history_statuses = "'paid', 'dispatched', 'finalized', 'canceled'";
     
-    if ($show_type === 'completed') {
-        $stmt = $conn->query("SELECT o.* FROM orders o WHERE o.status IN ($history_statuses) ORDER BY o.created_at DESC");
-    } else {
-        // Active orders: Anything not in history, OR finalized orders from the last 24 hours
-        $stmt = $conn->query("SELECT o.* FROM orders o 
-                              WHERE (o.status NOT IN ($history_statuses) OR o.status IS NULL) 
-                              OR (o.status = 'finalized' AND o.created_at > datetime('now', '-24 hours'))
-                              ORDER BY o.created_at DESC");
+    try {
+        Database::attach($conn, 'customers', 'customers_db');
+        
+        $base_sql = "SELECT o.*, c.company_name FROM orders o 
+                     LEFT JOIN customers_db.customers c ON o.customer_id = c.customer_id";
+        
+        if ($show_type === 'completed') {
+            $sql = "$base_sql WHERE o.status IN ($history_statuses) ORDER BY o.created_at DESC";
+        } else {
+            $sql = "$base_sql WHERE (o.status NOT IN ($history_statuses) OR o.status IS NULL) 
+                    OR (o.status = 'finalized' AND o.created_at > datetime('now', '-24 hours'))
+                    ORDER BY o.created_at DESC";
+        }
+    } catch (Exception $e) {
+        // Fallback if customers DB cannot be attached
+        if ($show_type === 'completed') {
+            $sql = "SELECT *, 'Unknown Account' as company_name FROM orders WHERE status IN ($history_statuses) ORDER BY created_at DESC";
+        } else {
+            $sql = "SELECT *, 'Unknown Account' as company_name FROM orders 
+                    WHERE (status NOT IN ($history_statuses) OR status IS NULL) 
+                    OR (status = 'finalized' AND created_at > datetime('now', '-24 hours'))
+                    ORDER BY created_at DESC";
+        }
     }
+
+    $stmt = $conn->query($sql);
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Fetch all customers for transfer dropdown
@@ -73,9 +85,7 @@ try {
             <tbody id="orders-list">
                 <?php if (count($orders) > 0): ?>
                     <?php foreach ($orders as $order): 
-                        $c_stmt = $conn_c->prepare("SELECT company_name FROM customers WHERE customer_id = ?");
-                        $c_stmt->execute([$order['customer_id']]);
-                        $company = $c_stmt->fetchColumn() ?: 'Unknown Account';
+                        $company = $order['company_name'] ?: 'Unknown Account';
                         $status = strtolower($order['status']);
                         $search_blob = strtolower($order['order_id'] . " " . $company . " " . $order['customer_id']);
                         $status_class = "status-" . $status;

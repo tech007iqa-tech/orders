@@ -62,14 +62,26 @@ try {
             if ($_POST['action'] === 'add_user' && !empty($_POST['new_username'])) {
                 $nu = trim($_POST['new_username']);
                 $np = $_POST['new_password'];
+                $nr = $_POST['new_role'] ?? 'Operator';
+                
                 if (strlen($np) >= 3) {
                     $hash = password_hash($np, PASSWORD_BCRYPT);
                     try {
-                        $auth_add = $conn_u->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-                        $auth_add->execute([$nu, $hash]);
-                        $message = "New user '{$nu}' added successfully!";
+                        $auth_add = $conn_u->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+                        $auth_add->execute([$nu, $hash, $nr]);
+                        $message = "New user '{$nu}' ({$nr}) added successfully!";
                     } catch(Exception $e) { $error = "Error: Username might already exist."; }
                 } else { $error = "User password must be at least 3 characters."; }
+            }
+
+            if ($_POST['action'] === 'change_role' && !empty($_POST['target_user'])) {
+                $tu = $_POST['target_user'];
+                $tr = $_POST['target_role'];
+                if ($tu !== 'admin') {
+                    $stmt_role = $conn_u->prepare("UPDATE users SET role = ? WHERE username = ?");
+                    $stmt_role->execute([$tr, $tu]);
+                    $message = "User '{$tu}' permissions updated to {$tr}.";
+                }
             }
 
             if ($_POST['action'] === 'delete_user' && !empty($_POST['del_username'])) {
@@ -210,9 +222,18 @@ try {
 
         <form method="POST" style="background: #f8fafc; padding: 20px; border-radius: 16px; border: 1px solid #e2e8f0;">
             <input type="hidden" name="action" value="add_user">
-            <div class="form-group" style="margin-bottom: 12px;">
-                <label for="new_username">New Username</label>
-                <input type="text" id="new_username" name="new_username" placeholder="e.g. omar_sales" required>
+            <div style="display: flex; gap: 15px; margin-bottom: 12px;">
+                <div class="form-group" style="flex: 2;">
+                    <label for="new_username">New Username</label>
+                    <input type="text" id="new_username" name="new_username" placeholder="e.g. omar_sales" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label for="new_role">Access Level</label>
+                    <select name="new_role" id="new_role" style="width:100%; height:44px; border-radius:10px; border:1px solid #ddd; padding: 0 10px; font-weight:700;">
+                        <option value="Operator">Operator</option>
+                        <option value="Admin">Administrator</option>
+                    </select>
+                </div>
             </div>
             <div class="form-group" style="margin-bottom: 18px;">
                 <label for="staff_password">Assign Password</label>
@@ -226,17 +247,40 @@ try {
         <ul class="user-list">
             <li style="font-size: 0.75rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 10px;">Active Accounts</li>
             <?php
-                $users = $conn_u->query("SELECT username FROM users ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC);
+                $users = $conn_u->query("SELECT username, role FROM users ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC);
                 foreach($users as $u) {
                     $is_admin = ($u['username'] === 'admin');
+                    $user_role = $u['role'] ?? 'Operator';
+                    
                     echo "<li class='user-item'>
-                            <span class='user-name'>" . htmlspecialchars($u['username']) . ($is_admin ? " <small style='color:var(--accent-color)'>(Root)</small>" : "") . "</span>";
+                            <div style='display:flex; flex-direction:column;'>
+                                <span class='user-name'>" . htmlspecialchars($u['username']) . ($is_admin ? " <small style='color:var(--accent-color)'>(Root)</small>" : "") . "</span>
+                                <span style='font-size: 0.65rem; color: #64748b; font-weight: 800; text-transform: uppercase;'>" . htmlspecialchars($user_role) . "</span>
+                            </div>";
+                    
                     if (!$is_admin) {
+                        echo "<div style='display:flex; gap:8px;'>";
+                        
+                        // Role Toggle Button
+                        $next_role = ($user_role === 'Admin' ? 'Operator' : 'Admin');
+                        $btn_text = ($user_role === 'Admin' ? 'Demote' : 'Promote');
+                        $btn_style = ($user_role === 'Admin' ? 'background:#e2e8f0; color:#475569;' : 'background:#dcfce7; color:#166534;');
+
+                        echo "<form method='POST' style='display:inline;'>
+                                <input type='hidden' name='action' value='change_role'>
+                                <input type='hidden' name='target_user' value='" . htmlspecialchars($u['username']) . "'>
+                                <input type='hidden' name='target_role' value='{$next_role}'>
+                                <button type='submit' class='btn-delete-small' style='{$btn_style}'>{$btn_text}</button>
+                              </form>";
+
+                        // Revoke Access
                         echo "<form method='POST' style='display:inline;' onsubmit=\"return confirm('Remove access for this user?');\">
                                 <input type='hidden' name='action' value='delete_user'>
                                 <input type='hidden' name='del_username' value='" . htmlspecialchars($u['username']) . "'>
                                 <button type='submit' class='btn-delete-small'>Revoke</button>
                               </form>";
+                        
+                        echo "</div>";
                     }
                     echo "</li>";
                 }

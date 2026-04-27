@@ -1,16 +1,8 @@
 <?php
-/**
- * Warehouse Database Layer
- * Handles SQLite connection and table migrations for the Inventory System.
- */
-
-$db_dir = __DIR__ . '/../assets/db';
-if (!is_dir($db_dir)) mkdir($db_dir, 0777, true);
-$db_file = $db_dir . '/warehouse.db';
+require_once __DIR__ . '/database.php';
 
 try {
-    $conn_wh = new PDO("sqlite:" . $db_file);
-    $conn_wh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn_wh = Database::warehouse();
 
     // 1. Warehouse Sectors / Zones Table
     $conn_wh->exec("CREATE TABLE IF NOT EXISTS sectors (

@@ -3,16 +3,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_dir = 'assets/db';
-if (!is_dir($db_dir)) {
-    mkdir($db_dir, 0777, true);
-}
-$db_file = $db_dir . '/orders.db';
-
 try {
     // Create connection to SQLite database
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::orders();
 
     // NEW! Ensure orders table exists for tracking multiple batches
     $conn->exec("CREATE TABLE IF NOT EXISTS orders (
@@ -114,7 +107,7 @@ unset($_SESSION['message']);
     // Fetch customer details for header
     $customer_name = 'Customer';
     try {
-        $c_db = new PDO("sqlite:assets/db/customers.db");
+        $c_db = Database::customers();
         $c_stmt = $c_db->prepare("SELECT company_name FROM customers WHERE customer_id = ?");
         $c_stmt->execute([$current_customer]);
         $customer_name = $c_stmt->fetchColumn() ?: $current_customer;

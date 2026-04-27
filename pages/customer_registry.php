@@ -3,18 +3,9 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_dir = 'assets/db';
-if (!is_dir($db_dir)) {
-    mkdir($db_dir, 0777, true);
-}
-$db_file = $db_dir . '/customers.db';
-$db_orders = $db_dir . '/orders.db';
-
 try {
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn_orders = new PDO("sqlite:" . $db_orders);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $conn_orders->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::customers();
+    $conn_orders = Database::orders();
 
     // Create orders table if first run
     $conn_orders->exec("CREATE TABLE IF NOT EXISTS orders (
@@ -170,47 +161,26 @@ try {
         }
         $sort_param = $_GET['sort'] ?? $_SESSION['cust_sort_pref'] ?? 'date_desc';
         
-        // Fetch All Customers
-        $stmt = $conn->query("SELECT * FROM customers");
-        $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Enrich with order data for sorting
-        foreach($customers as &$c) {
-            $stmt_o = $conn_orders->prepare("
-                SELECT o.order_id, o.created_at, o.status,
-                       (SELECT SUM(quantity) FROM items WHERE order_id = o.order_id) as total_qty,
-                       (SELECT SUM(quantity * unit_price) FROM items WHERE order_id = o.order_id) as total_value
-                FROM orders o 
-                WHERE o.customer_id = ? 
-                ORDER BY o.created_at DESC
-            ");
-            $stmt_o->execute([$c['customer_id']]);
-            $c['orders_list'] = $stmt_o->fetchAll(PDO::FETCH_ASSOC);
+        // Fetch All Customers with Aggregated Order Data using Cross-DB Join
+        try {
+            Database::attach($conn, 'orders', 'orders_db');
             
-            $completed_count = 0;
-            $active_count = 0;
-            $lifetime_value = 0;
-            $last_date = '0000-00-00 00:00:00';
-
-            if (!empty($c['orders_list'])) {
-                $last_date = $c['orders_list'][0]['created_at'];
-                foreach ($c['orders_list'] as $o) {
-                    if (in_array(strtolower($o['status']), ['finalized', 'paid', 'dispatched', 'canceled'])) {
-                        $completed_count++;
-                    } else {
-                        $active_count++;
-                    }
-                    $lifetime_value += ($o['total_value'] ?? 0);
-                }
-            }
-
-            $c['completed_count'] = $completed_count;
-            $c['active_count'] = $active_count;
-            $c['lifetime_value'] = $lifetime_value;
-            $c['last_order_date'] = $last_date;
-            $c['total_orders'] = count($c['orders_list']);
+            $sql = "
+                SELECT c.*, 
+                    (SELECT COUNT(*) FROM orders_db.orders o WHERE o.customer_id = c.customer_id) as total_orders,
+                    (SELECT SUM(i.quantity * i.unit_price) FROM orders_db.items i WHERE i.customer_id = c.customer_id) as lifetime_value,
+                    (SELECT MAX(o.created_at) FROM orders_db.orders o WHERE o.customer_id = c.customer_id) as last_order_date,
+                    (SELECT COUNT(*) FROM orders_db.orders o WHERE o.customer_id = c.customer_id AND o.status IN ('finalized', 'paid', 'dispatched', 'canceled')) as completed_count,
+                    (SELECT COUNT(*) FROM orders_db.orders o WHERE o.customer_id = c.customer_id AND o.status NOT IN ('finalized', 'paid', 'dispatched', 'canceled')) as active_count
+                FROM customers c
+            ";
+        } catch (Exception $e) {
+            // Fallback if orders DB is not available
+            $sql = "SELECT *, 0 as total_orders, 0 as lifetime_value, '0000-00-00 00:00:00' as last_order_date, 0 as completed_count, 0 as active_count FROM customers";
         }
-        unset($c);
+        
+        $stmt = $conn->query($sql);
+        $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // Advanced Sorting Logic
         usort($customers, function($a, $b) use ($sort_param) {

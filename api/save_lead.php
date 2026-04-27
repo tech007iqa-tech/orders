@@ -1,4 +1,5 @@
 <?php
+require_once '../core/database.php';
 include '../core/auth.php';
 
 header('Content-Type: application/json');
@@ -9,12 +10,8 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     exit();
 }
 
-$db_dir = '../assets/db';
-$db_file = $db_dir . '/customers.db';
-
 try {
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::customers();
 
     $customer_id = $_POST['customer_id'] ?? null;
     if (!$customer_id) throw new Exception("Missing Customer ID");

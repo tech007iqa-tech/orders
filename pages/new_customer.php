@@ -3,15 +3,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_dir = 'assets/db';
-if (!is_dir($db_dir)) {
-    mkdir($db_dir, 0777, true);
-}
-$db_file = $db_dir . '/customers.db';
-
 try {
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::customers();
 
     // Full schema for customers
     $conn->exec("CREATE TABLE IF NOT EXISTS customers (

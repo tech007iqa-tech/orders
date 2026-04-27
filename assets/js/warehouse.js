@@ -396,6 +396,9 @@ function editWarehouseItem(item) {
     title.innerText = '📝 Update Inventory';
     action.value = 'edit_inventory';
     editId.value = item.id;
+    const lastUpdatedInput = document.getElementById('wh-last-updated');
+    if (lastUpdatedInput) lastUpdatedInput.value = item.updated_at;
+    
     submitBtn.innerText = '💾 Save Changes';
     cancelBtn.style.display = 'block';
 
@@ -457,6 +460,9 @@ function resetWarehouseForm() {
     title.innerText = '📥 Register Stock';
     action.value = 'add_inventory';
     editId.value = '';
+    const lastUpdatedInput = document.getElementById('wh-last-updated');
+    if (lastUpdatedInput) lastUpdatedInput.value = '';
+
     submitBtn.innerText = '📥 Add to Stock';
     cancelBtn.style.display = 'none';
 

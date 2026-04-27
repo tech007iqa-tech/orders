@@ -1,9 +1,6 @@
 <?php
+require_once '../core/database.php';
 include '../core/auth.php';
-include '../core/warehouse_db.php'; // We might need this for orders too, but let's check which DB is used
-
-$db_dir = '../assets/db';
-$db_file = $db_dir . '/orders.db';
 
 header('Content-Type: application/json');
 
@@ -23,8 +20,7 @@ if (!$ord_id || !$new_status) {
 }
 
 try {
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::orders();
 
     $stmt_u = $conn->prepare("UPDATE orders SET status = ? WHERE order_id = ?");
     $stmt_u->execute([$new_status, $ord_id]);

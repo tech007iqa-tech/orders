@@ -123,6 +123,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $specs_json = json_encode($specs);
 
         if ($_POST['action'] === 'edit_inventory' && isset($_POST['item_id'])) {
+            // Concurrency Check: Verify if the record was updated by someone else
+            $last_known = $_POST['last_updated_at'] ?? '';
+            $stmt_check = $conn_wh->prepare("SELECT updated_at FROM inventory WHERE id = ?");
+            $stmt_check->execute([$_POST['item_id']]);
+            $current_ts = $stmt_check->fetchColumn();
+
+            if ($last_known && $current_ts && $last_known !== $current_ts) {
+                $error_msg = "CONCURRENCY_ERROR";
+                header("Location: index.php?view=warehouse&sector=" . urlencode($sector) . "&loc=" . urlencode($loc) . "&msg=" . $error_msg . "#wh-form-title");
+                exit();
+            }
+
             $stmt = $conn_wh->prepare("UPDATE inventory SET brand=?, model=?, specs_json=?, quantity=?, last_updated_by=?, updated_at=CURRENT_TIMESTAMP WHERE id=?");
             $stmt->execute([$brand, $model, $specs_json, $qty, $current_user, $_POST['item_id']]);
         } else {
@@ -504,6 +516,7 @@ if ($selected_loc) {
                 <form method="POST" action="" id="wh-main-form">
                     <input type="hidden" name="action" id="wh-form-action" value="add_inventory">
                     <input type="hidden" name="item_id" id="wh-edit-id" value="">
+                    <input type="hidden" name="last_updated_at" id="wh-last-updated" value="">
                     <input type="hidden" name="sector" value="<?= htmlspecialchars($selected_sector) ?>">
                     
                     <div class="form-group" style="margin-bottom: 15px;">
@@ -523,15 +536,17 @@ if ($selected_loc) {
                             <datalist id="model-options"></datalist>
                         </div></div>
                         <?php if (isset($_GET['msg'])): ?>
-                    <div id="wh-msg-banner" style="background: #dcfce7; color: #15803d; padding: 12px 15px; border-radius: 12px; margin-bottom: 20px; font-weight: 700; font-size: 0.85rem; border: 1px solid #bef264; display: flex; align-items: center; gap: 10px; animation: slideDown 0.3s ease; transition: opacity 0.5s ease, transform 0.5s ease;">
-                        <span>✅</span>
-                        <span style="flex: 1;">
+                    <div class="msg-banner <?= strpos($_GET['msg'], 'ERROR') !== false ? 'error' : '' ?>" id="wh-msg-banner" style="background: <?= strpos($_GET['msg'], 'ERROR') !== false ? '#fef2f2' : '#f0fdf4' ?>; border: 1px solid <?= strpos($_GET['msg'], 'ERROR') !== false ? '#fecaca' : '#bbf7d0' ?>; color: <?= strpos($_GET['msg'], 'ERROR') !== false ? '#991b1b' : '#15803d' ?>; padding: 12px 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.85rem; font-weight: 700; display: flex; justify-content: space-between; align-items: center; animation: slideDown 0.3s ease; transition: opacity 0.5s ease, transform 0.5s ease;">
+                        <span><?= strpos($_GET['msg'], 'ERROR') !== false ? '⚠️' : '✅' ?></span>
+                        <span style="flex: 1; margin: 0 10px;">
                             <?php 
                                 if($_GET['msg'] === 'added') echo "Stock registered successfully!";
                                 elseif($_GET['msg'] === 'updated') echo "Entry updated successfully!";
                                 elseif($_GET['msg'] === 'deleted') echo "Entry removed from stock.";
                                 elseif($_GET['msg'] === 'zone_renamed') echo "Working zone renamed successfully!";
                                 elseif($_GET['msg'] === 'zone_deleted') echo "Working zone and all its items have been deleted.";
+                                elseif($_GET['msg'] === 'CONCURRENCY_ERROR') echo "<strong>COLLISION:</strong> Record updated by another user. Please refresh and try again.";
+                                else echo htmlspecialchars($_GET['msg']);
                             ?>
                         </span>
                         <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; color:#15803d; cursor:pointer; font-size:1.2rem; line-height:1; padding:0 5px; opacity:0.5;">&times;</button>

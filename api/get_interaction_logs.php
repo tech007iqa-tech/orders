@@ -1,4 +1,5 @@
 <?php
+require_once '../core/database.php';
 include '../core/auth.php';
 
 header('Content-Type: application/json');
@@ -9,12 +10,8 @@ if (!$customer_id) {
     exit();
 }
 
-$db_dir = '../assets/db';
-$db_file = $db_dir . '/customers.db';
-
 try {
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::customers();
 
     $stmt = $conn->prepare("SELECT * FROM interaction_logs WHERE customer_id = ? ORDER BY contact_date DESC, created_at DESC");
     $stmt->execute([$customer_id]);

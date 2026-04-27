@@ -3,26 +3,52 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_dir = 'assets/db';
-$db_file = $db_dir . '/customers.db';
-$db_orders = $db_dir . '/orders.db';
-
 try {
-    $conn = new PDO("sqlite:" . $db_file);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn = Database::customers();
 
-    // Schema updates for leads (ensuring they exist)
-    $conn->exec("ALTER TABLE customers ADD COLUMN account_status TEXT DEFAULT 'Lead'");
-    $conn->exec("ALTER TABLE customers ADD COLUMN lead_source TEXT DEFAULT ''");
-    $conn->exec("ALTER TABLE customers ADD COLUMN interest TEXT DEFAULT ''");
-    $conn->exec("ALTER TABLE customers ADD COLUMN contact_method TEXT DEFAULT ''");
-} catch(Exception $e) {} // Ignore if already exist
+    // 1. Robust Schema Migration for Leads
+    $existing_cols = $conn->query("PRAGMA table_info(customers)")->fetchAll(PDO::FETCH_ASSOC);
+    $col_names = array_column($existing_cols, 'name');
+    
+    $required_cols = [
+        'account_status' => "TEXT DEFAULT 'Lead'",
+        'lead_source'    => "TEXT DEFAULT ''",
+        'interest'       => "TEXT DEFAULT ''",
+        'contact_method'  => "TEXT DEFAULT ''",
+        'callback_date'   => "TEXT DEFAULT ''",
+        'message_date'    => "TEXT DEFAULT ''"
+    ];
 
+    foreach ($required_cols as $col => $definition) {
+        if (!in_array($col, $col_names)) {
+            $conn->exec("ALTER TABLE customers ADD COLUMN $col $definition");
+        }
+    }
+
+    // 2. Interaction Logs table (Centralized check)
+    $conn->exec("CREATE TABLE IF NOT EXISTS interaction_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id TEXT NOT NULL,
+        contact_date TEXT,
+        method TEXT,
+        note TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )");
+
+} catch(Exception $e) {
+    // Basic error reporting for schema
+}
+
+// 3. Robust Data Fetching with Fallback
+$all_leads = [];
 try {
-    // Attach orders database to fetch calculated fields
-    if (file_exists($db_orders)) {
-        $conn->exec("ATTACH DATABASE '" . realpath($db_orders) . "' AS orders_db");
-        
+    // Attempt to attach orders for calculated balances
+    Database::attach($conn, 'orders', 'orders_db');
+    
+    // Check if the necessary tables exist in the attached DB before querying
+    $table_check = $conn->query("SELECT name FROM orders_db.sqlite_master WHERE type='table' AND name='orders'")->fetch();
+    
+    if ($table_check) {
         $sql = "
             SELECT c.*, 
                 (SELECT created_at FROM orders_db.orders o WHERE o.customer_id = c.customer_id ORDER BY id DESC LIMIT 1) as last_purchase,
@@ -32,21 +58,25 @@ try {
             ORDER BY c.callback_date ASC, c.created_at DESC
         ";
     } else {
-        $sql = "SELECT *, NULL as last_purchase, NULL as last_order_id, 0 as total_balance FROM customers ORDER BY created_at DESC";
+        throw new Exception("Orders table not found in attached DB");
     }
-    
+} catch (Exception $e) {
+    // Fallback Query if attachment or cross-db query fails
+    $sql = "SELECT *, NULL as last_purchase, NULL as last_order_id, 0 as total_balance FROM customers ORDER BY created_at DESC";
+}
+
+try {
     $stmt = $conn->query($sql);
     $all_leads = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Filter "Call Today" tasks
-    $today = date('Y-m-d');
-    $call_today = array_filter($all_leads, function($l) use ($today) {
-        return !empty($l['callback_date']) && $l['callback_date'] <= $today && strtolower($l['account_status']) !== 'lost' && strtolower($l['account_status']) !== 'inactive';
-    });
-
-} catch (PDOException $e) {
-    die("Database Connection failed: " . $e->getMessage());
+} catch (Exception $e) {
+    $all_leads = [];
 }
+
+// 4. Filter "Call Today" tasks
+$today = date('Y-m-d');
+$call_today = array_filter($all_leads, function($l) use ($today) {
+    return !empty($l['callback_date']) && $l['callback_date'] <= $today && strtolower($l['account_status'] ?? '') !== 'lost' && strtolower($l['account_status'] ?? '') !== 'inactive';
+});
 ?>
 
 <div class="orders-container">
@@ -130,8 +160,10 @@ try {
                         </td>
                         <td style="padding: 16px;">
                             <?php if ($lead['last_order_id']): ?>
-                                <div style="font-weight: 700; color: #475569; font-size:0.85rem; font-family:monospace;"><?= htmlspecialchars($lead['last_order_id']) ?></div>
-                                <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;"><?= date('M d, Y', strtotime($lead['last_purchase'])) ?></div>
+                                <a href="checkout.php?customer_id=<?= urlencode($lead['customer_id']) ?>&order_id=<?= urlencode($lead['last_order_id']) ?>" style="text-decoration: none;">
+                                    <div style="font-weight: 700; color: var(--accent-color); font-size:0.85rem; font-family:monospace;"><?= htmlspecialchars($lead['last_order_id']) ?></div>
+                                    <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 2px;"><?= date('M d, Y', strtotime($lead['last_purchase'])) ?></div>
+                                </a>
                             <?php else: ?>
                                 <span style="color:#cbd5e1;">-</span>
                             <?php endif; ?>

@@ -1,40 +1,52 @@
 <?php
+
+require_once __DIR__ . '/database.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$db_dir = __DIR__ . '/../assets/db';
-if (!is_dir($db_dir)) mkdir($db_dir, 0777, true);
-$db_file = $db_dir . '/users.db';
+// 1. Auto-Redirect if already logged in
+if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
+    $redirect = ($_SESSION['role'] === 'Admin') ? "../index.php" : "../index.php?view=warehouse";
+    header("Location: $redirect");
+    exit();
+}
+
+$error = null;
 
 try {
-    $conn_auth = new PDO("sqlite:" . $db_file);
-    $conn_auth->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $conn_auth = Database::users();
 
-    // Initial table setup
+    // Consolidated Initial Schema (Role included)
     $conn_auth->exec("CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
         display_name TEXT DEFAULT '',
+        role TEXT DEFAULT 'Operator',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )");
 
-    // Migration: add display_name if older DB
+    // Migration: add columns if older DB
     $cols = $conn_auth->query("PRAGMA table_info(users)")->fetchAll(PDO::FETCH_ASSOC);
-    if (!in_array('display_name', array_column($cols, 'name'))) {
+    $col_names = array_column($cols, 'name');
+    
+    if (!in_array('display_name', $col_names)) {
         $conn_auth->exec("ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT ''");
+    }
+    if (!in_array('role', $col_names)) {
+        $conn_auth->exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'Operator'");
     }
 
     // Seed default user if empty (admin / admin123)
     $stmt = $conn_auth->query("SELECT COUNT(*) FROM users");
     if ($stmt->fetchColumn() == 0) {
         $hash = password_hash('admin123', PASSWORD_BCRYPT);
-        $stmt_s = $conn_auth->prepare("INSERT INTO users (username, password, display_name) VALUES (?, ?, ?)");
-        $stmt_s->execute(['admin', $hash, 'Administrator']);
+        $stmt_s = $conn_auth->prepare("INSERT INTO users (username, password, display_name, role) VALUES (?, ?, ?, ?)");
+        $stmt_s->execute(['admin', $hash, 'Administrator', 'Admin']);
     }
 
-    $error = null;
     if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['username']) && isset($_POST['password'])) {
         $username = trim($_POST['username']);
         $password = $_POST['password'];
@@ -44,18 +56,27 @@ try {
         $user = $stmt_l->fetch(PDO::FETCH_ASSOC);
 
         if ($user && password_verify($password, $user['password'])) {
+            // 2. Session Fixation Protection
+            session_regenerate_id(true);
+
             $_SESSION['authenticated'] = true;
             $_SESSION['username'] = $user['username'];
             $_SESSION['display_name'] = $user['display_name'] ?: $user['username'];
             $_SESSION['role'] = $user['role'] ?? 'Operator';
-            header("Location: ../index.php");
+            
+            // Redirect based on role
+            if ($_SESSION['role'] === 'Admin') {
+                header("Location: ../index.php");
+            } else {
+                header("Location: ../index.php?view=warehouse");
+            }
             exit();
         } else {
             $error = "Invalid username or password";
         }
     }
-} catch (PDOException $e) {
-    die("Auth error: " . $e->getMessage());
+} catch (Exception $e) {
+    $error = "System Error: " . $e->getMessage();
 }
 ?>
 
@@ -100,7 +121,7 @@ try {
         </form>
 
         <div class="login-footer">
-            <small>&copy; <?= date('Y') ?> IQA Metal | Secured Batch fulfillment</small>
+            <small>&copy; <?= date('M, Y') ?> IQA Metal | Secured Batch fulfillment</small>
         </div>
     </div>
 

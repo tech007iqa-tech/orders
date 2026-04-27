@@ -1,4 +1,7 @@
-<?php include 'core/auth.php'; ?>
+<?php 
+require_once 'core/database.php';
+include 'core/auth.php'; 
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -37,6 +40,17 @@
         ];
 
         $active_key = $is_new_order ? 'new_order' : (isset($routes[$view]) ? $view : 'default');
+        
+        // --- ROLE BASED ACCESS CONTROL ---
+        $user_role = $_SESSION['role'] ?? 'Operator';
+        if ($user_role !== 'Admin') {
+            // Restrict operators to only Warehouse and Personal Settings
+            $allowed_operator_keys = ['warehouse', 'import_warehouse', 'settings'];
+            if (!in_array($active_key, $allowed_operator_keys)) {
+                $active_key = 'warehouse';
+            }
+        }
+        
         $active_route = $routes[$active_key];
 
         if ($active_route['css'] !== 'style.css') {
@@ -54,48 +68,67 @@
 <body>
     <div class="breadcrumb-container" role="banner" style="max-width: 800px; margin: 0 auto 20px auto; width: 100%; display: flex; justify-content: space-between; align-items: center;">
         <nav class="breadcrumbs">
-            <a href="index.php"
-                class="crumb <?= !isset($_GET['customer_id']) && !isset($_GET['view']) ? 'active' : '' ?>">
-                <span class="step-num">1</span> Customers
-            </a>
+            <?php if ($user_role === 'Admin'): ?>
+                <a href="index.php"
+                    class="crumb <?= !isset($_GET['customer_id']) && !isset($_GET['view']) ? 'active' : '' ?>">
+                    <span class="step-num">1</span> Customers
+                </a>
 
-            <?php if (isset($_GET['view']) && $_GET['view'] === 'register'): ?>
-            <span class="separator">/</span>
-            <a href="#" class="crumb active">
-                <span class="step-num">2</span> Register
-            </a>
-            <?php endif; ?>
+                <?php if (isset($_GET['view']) && $_GET['view'] === 'register'): ?>
+                <span class="separator">/</span>
+                <a href="#" class="crumb active">
+                    <span class="step-num">2</span> Register
+                </a>
+                <?php endif; ?>
 
-            <?php if (isset($_GET['customer_id'])): ?>
-            <span class="separator">/</span>
-            <a href="#" class="crumb active">
-                <span class="step-num">2</span> Order Entry
-            </a>
-            <?php endif; ?>
+                <?php if (isset($_GET['customer_id'])): ?>
+                <span class="separator">/</span>
+                <a href="#" class="crumb active">
+                    <span class="step-num">2</span> Order Entry
+                </a>
+                <?php endif; ?>
 
-            <?php if (isset($_GET['view']) && $_GET['view'] === 'settings'): ?>
-            <span class="separator">/</span>
-            <a href="#" class="crumb active">
-                <span class="step-num">⚙️</span> Settings
-            </a>
+                <?php if (isset($_GET['view']) && $_GET['view'] === 'settings'): ?>
+                <span class="separator">/</span>
+                <a href="#" class="crumb active">
+                    <span class="step-num">⚙️</span> Settings
+                </a>
+                <?php endif; ?>
+            <?php else: ?>
+                <a href="index.php?view=warehouse" class="crumb <?= !isset($_GET['view']) || $_GET['view'] === 'warehouse' ? 'active' : '' ?>">
+                    <span class="step-num">🏬</span> Warehouse Portal
+                </a>
+                <?php if (isset($_GET['view']) && $_GET['view'] === 'settings'): ?>
+                <span class="separator">/</span>
+                <a href="#" class="crumb active">
+                    <span class="step-num">⚙️</span> Personal Settings
+                </a>
+                <?php endif; ?>
             <?php endif; ?>
         </nav>
 
         <nav class="breadcrumbs" style="display: flex; gap: 20px; align-items: center;">
-            <a href="index.php?view=leads" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'leads' ? 'active' : '' ?>" style="margin:0;">
-                🎯 Leads
-            </a>
+            <?php if ($user_role === 'Admin'): ?>
+                <a href="index.php?view=leads" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'leads' ? 'active' : '' ?>" style="margin:0;">
+                    🎯 Leads
+                </a>
+            <?php endif; ?>
+            
             <a href="index.php?view=warehouse" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'warehouse' ? 'active' : '' ?>" style="margin:0;">
                 🏬 Warehouse
             </a>
-            <a href="index.php?view=orders" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'orders' ? 'active' : '' ?>" style="margin:0;">
-                📦 All Orders
-            </a>
-            <a href="index.php?view=settings" class="crumb icon-only <?= isset($_GET['view']) && $_GET['view'] === 'settings' ? 'active' : '' ?>" style="margin:0;">⚙️</a>
+
+            <?php if ($user_role === 'Admin'): ?>
+                <a href="index.php?view=orders" class="crumb <?= isset($_GET['view']) && $_GET['view'] === 'orders' ? 'active' : '' ?>" style="margin:0;">
+                    📦 All Orders
+                </a>
+            <?php endif; ?>
+
+            <a href="index.php?view=settings" class="crumb icon-only <?= isset($_GET['view']) && $_GET['view'] === 'settings' ? 'active' : '' ?>" style="margin:0;" title="Settings">⚙️</a>
         </nav>
     </div>
 
-    <div class="container <?= $is_new_order || $view === 'orders' || $view === 'warehouse' || $view === 'leads' ? 'order-view' : '' ?>" role="main">
+    <div class="container <?= in_array($active_key, ['new_order', 'orders', 'warehouse', 'leads', 'import_warehouse']) ? 'order-view' : '' ?>" role="main">
         <?php
         // Global State Initialization
         $selected_sector = $_GET['sector'] ?? 'Laptops';
@@ -103,8 +136,7 @@
 
         // Order Creation Logic
         if (isset($_GET['action']) && $_GET['action'] === 'create_new_order' && isset($_GET['customer_id'])) {
-            $db_dir = 'assets/db';
-            $conn_o = new PDO("sqlite:" . $db_dir . "/orders.db");
+            $conn_o = Database::orders();
             $new_order_id = 'ORD-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
 
             $stmt = $conn_o->prepare("INSERT INTO orders (order_id, customer_id, status) VALUES (?, ?, 'active')");
@@ -123,55 +155,19 @@
         ?>
     </div>
     <footer class="footer" role="contentinfo">
-        <?php if ($selected_loc): ?>
-                <div class="active-loc-display">
-                    <div class="loc-label">Active Location</div>
-                    <a href="index.php?view=warehouse&sector=<?= urlencode($selected_sector) ?>" class="loc-active-badge">
-                        <span class="loc-pin">📍</span>
-                        <span class="loc-text"><?= htmlspecialchars($selected_loc) ?></span>
-                        <span class="loc-change">Change</span>
-                    </a>
-                </div>
-            <?php else: "";?>
-            <?php endif; ?><hr />
-    <nav class="breadcrumbs">
-            <a href="../app/"
-                class="crumb <?= !isset($_GET['customer_id']) && !isset($_GET['view']) ? 'active' : '' ?>">
-                <span class="step-num">📦</span> Labels
-            </a>
-            <a href="index.php"
-                class="crumb <?= !isset($_GET['customer_id']) && !isset($_GET['view']) ? 'active' : '' ?>">
-                <span class="step-num">&#8507;</span> Customers
-            </a>
-
-            <?php if (isset($_GET['view']) && $_GET['view'] === 'register'): ?>
-            <span class="separator">/</span>
-            <a href="#" class="crumb active">
-                <span class="step-num">2</span> Register
-            </a>
-            <?php endif; ?>
-
-            <?php if (isset($_GET['customer_id'])): ?>
-            <span class="separator">/</span>
-            <a href="#" class="crumb active">
-                <span class="step-num">2</span> Order Entry
-            </a>
-            <?php endif; ?>
-
-            <?php if (isset($_GET['view']) && $_GET['view'] === 'settings'): ?>
-            <span class="separator">/</span>
-            <a href="#" class="crumb active">
-                <span class="step-num">⚙️</span> Settings
-            </a>
-            <?php endif; ?>
-        </nav>
+        <p>&copy; <?= date('Y') ?> IQA Metal | Managed Inventory & Order Fulfillments</p>
     </footer>
-    <!-- Load compiled JavaScript directly for performance/mobile compatibility -->
-    <script src="assets/js/new_order.js?v=<?= filemtime('assets/js/new_order.js') ?>" defer></script>
-    <script src="assets/js/warehouse.js?v=<?= filemtime('assets/js/warehouse.js') ?>" defer></script>
-    <script src="assets/js/customer_registry.js?v=<?= filemtime('assets/js/customer_registry.js') ?>" defer></script>
-    <?php if ($view === 'leads' && file_exists('assets/js/leads.js')): ?>
-    <script src="assets/js/leads.js?v=<?= filemtime('assets/js/leads.js') ?>" defer></script>
+    <!-- Load view-specific JavaScript -->
+    <?php if ($active_key === 'new_order'): ?>
+        <script src="assets/js/new_order.js?v=<?= filemtime('assets/js/new_order.js') ?>" defer></script>
+    <?php elseif ($active_key === 'warehouse' || $active_key === 'import_warehouse'): ?>
+        <script src="assets/js/warehouse.js?v=<?= filemtime('assets/js/warehouse.js') ?>" defer></script>
+    <?php elseif ($active_key === 'default' || $active_key === 'register'): ?>
+        <script src="assets/js/customer_registry.js?v=<?= filemtime('assets/js/customer_registry.js') ?>" defer></script>
+    <?php elseif ($active_key === 'leads' && file_exists('assets/js/leads.js')): ?>
+        <script src="assets/js/leads.js?v=<?= filemtime('assets/js/leads.js') ?>" defer></script>
+    <?php elseif ($active_key === 'orders'): ?>
+        <script src="assets/js/orders.js?v=<?= filemtime('assets/js/orders.js') ?>" defer></script>
     <?php endif; ?>
 </body>
 
