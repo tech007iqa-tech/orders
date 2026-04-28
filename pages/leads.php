@@ -80,9 +80,27 @@ $call_today = array_filter($all_leads, function($l) use ($today) {
 ?>
 
 <div class="orders-container">
-    <header class="orders-header" style="flex-direction: column; align-items: flex-start; gap: 5px;">
-        <h1>CRM & Lead Hub</h1>
-        <p class="subtitle orders-subtitle">Track relationships, manage follow-ups, and convert leads into active accounts.</p>
+    <header class="orders-header" style="flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 30px;">
+        <div>
+            <h1>CRM & Lead Hub</h1>
+            <p class="subtitle orders-subtitle" style="margin:0;">Track relationships, manage follow-ups, and convert leads into active accounts.</p>
+        </div>
+        
+        <!-- Conversion Stats Header -->
+        <div style="display: flex; gap: 20px;">
+            <?php 
+                $lead_count = count(array_filter($all_leads, fn($l) => strtolower($l['account_status'] ?? '') === 'lead'));
+                $total_pipeline = array_sum(array_column($all_leads, 'total_balance'));
+            ?>
+            <div style="background: white; padding: 12px 20px; border-radius: 16px; border: 1px solid var(--border-color); text-align: center; box-shadow: var(--shadow-sm);">
+                <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Active Leads</div>
+                <div style="font-size: 1.2rem; font-weight: 900; color: var(--accent-color);"><?= $lead_count ?></div>
+            </div>
+            <div style="background: white; padding: 12px 20px; border-radius: 16px; border: 1px solid var(--border-color); text-align: center; box-shadow: var(--shadow-sm);">
+                <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">Pipeline Value</div>
+                <div style="font-size: 1.2rem; font-weight: 900; color: var(--text-main);">$<?= number_format($total_pipeline, 0) ?></div>
+            </div>
+        </div>
     </header>
 
     <?php if (count($call_today) > 0): ?>
@@ -112,10 +130,15 @@ $call_today = array_filter($all_leads, function($l) use ($today) {
             <i class="search-icon">🔍</i>
             <input type="text" id="lead-search" placeholder="Search by Company, Lead Source, or Status..." aria-label="Search leads" onkeyup="filterLeads()">
         </div>
-        <div class="orders-tabs" style="margin:0;">
-            <a href="#" class="orders-tab-link active" onclick="filterByStatus('all')">All Accounts</a>
-            <a href="#" class="orders-tab-link" onclick="filterByStatus('lead')">Leads</a>
-            <a href="#" class="orders-tab-link" onclick="filterByStatus('active')">Customers</a>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <button onclick="openAddLeadModal()" class="btn-main" style="margin:0; background:var(--accent-color); color:white; white-space:nowrap; height:42px; padding:0 20px; font-size:0.85rem; border:none; box-shadow:var(--shadow-sm);">
+                <span>+ Add New Lead</span>
+            </button>
+            <div class="orders-tabs" style="margin:0; height:42px; display:flex; align-items:center;">
+                <a href="#" class="orders-tab-link active" onclick="filterByStatus('all')">All Accounts</a>
+                <a href="#" class="orders-tab-link" onclick="filterByStatus('lead')">Leads</a>
+                <a href="#" class="orders-tab-link" onclick="filterByStatus('active')">Customers</a>
+            </div>
         </div>
     </div>
 
@@ -272,7 +295,14 @@ $call_today = array_filter($all_leads, function($l) use ($today) {
                 </div>
 
                 <div style="background: #f8fafc; padding: 20px; border-radius: 16px; margin-bottom: 30px; border: 1px solid #e2e8f0;">
-                    <label style="display:block; font-size:0.7rem; font-weight:900; text-transform:uppercase; color:var(--accent-color); margin-bottom:10px;">🆕 Log New Interaction</label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <label style="font-size:0.7rem; font-weight:900; text-transform:uppercase; color:var(--accent-color);">🆕 Log New Interaction</label>
+                        <div style="display:flex; gap:8px;">
+                            <button type="button" onclick="quickLog('Phone')" class="btn-order-view" style="font-size:0.6rem; padding:4px 8px; background:white; border:1px solid #cbd5e1;">📞 Call</button>
+                            <button type="button" onclick="quickLog('Email')" class="btn-order-view" style="font-size:0.6rem; padding:4px 8px; background:white; border:1px solid #cbd5e1;">📧 Email</button>
+                            <button type="button" onclick="quickLog('Message')" class="btn-order-view" style="font-size:0.6rem; padding:4px 8px; background:white; border:1px solid #cbd5e1;">💬 Msg</button>
+                        </div>
+                    </div>
                     <textarea id="new_interaction_note" name="new_interaction_note" placeholder="Write a summary of your recent call/message here... (Historical)" style="width:100%; min-height:100px; border-color:#cbd5e1;"></textarea>
                 </div>
 
@@ -296,22 +326,96 @@ $call_today = array_filter($all_leads, function($l) use ($today) {
     </div>
 </div>
 
-<script>
-    function filterByStatus(status) {
-        // Update tabs UI
-        document.querySelectorAll('.orders-tab-link').forEach(tab => tab.classList.remove('active'));
-        event.target.classList.add('active');
+<!-- Quick Add Lead Modal -->
+<div id="addLeadModal" class="modal-overlay" onclick="if(event.target === this) closeAddLeadModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); backdrop-filter:blur(4px); z-index:1001; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:24px; width:95%; max-width:600px; padding:40px; box-shadow:var(--shadow-lg);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px;">
+            <h2 style="font-weight: 900; font-size: 1.5rem; margin:0; color:var(--text-main);">✨ Quick Register Lead</h2>
+            <button type="button" onclick="closeAddLeadModal()" style="background:none; border:none; cursor:pointer; font-size:1.5rem; opacity:0.3;">&times;</button>
+        </div>
 
-        const rows = document.getElementsByClassName('lead-row');
-        for (let row of rows) {
-            const rowStatus = row.getAttribute('data-status').toLowerCase();
-            if (status === 'all') {
-                row.style.display = '';
-            } else if (status === 'lead') {
-                row.style.display = rowStatus === 'lead' ? '' : 'none';
-            } else if (status === 'active') {
-                row.style.display = rowStatus === 'active customer' ? '' : 'none';
+        <form onsubmit="quickAddLead(event)">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--text-secondary);">Company Name</label>
+                <input type="text" name="company_name" placeholder="e.g. Acme Corp" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--text-secondary);">Contact Person</label>
+                    <input type="text" name="contact_person" placeholder="Name">
+                </div>
+                <div class="form-group">
+                    <label style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--text-secondary);">Lead Source</label>
+                    <input type="text" name="lead_source" placeholder="Referral, Web, etc.">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div class="form-group">
+                    <label style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--text-secondary);">Email</label>
+                    <input type="email" name="email" placeholder="email@company.com">
+                </div>
+                <div class="form-group">
+                    <label style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--text-secondary);">Phone</label>
+                    <input type="text" name="phone" placeholder="+1...">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 30px;">
+                <label style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--text-secondary);">Initial Interest / Notes</label>
+                <textarea name="interest" placeholder="What are they looking for?" style="width:100%; min-height:80px;"></textarea>
+            </div>
+
+            <button type="submit" id="btn-quick-add" class="btn-main" style="width: 100%; height: 54px;">
+                🚀 Create Lead Profile
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openAddLeadModal() {
+        document.getElementById('addLeadModal').style.display = 'flex';
+    }
+    function closeAddLeadModal() {
+        document.getElementById('addLeadModal').style.display = 'none';
+    }
+
+    async function quickAddLead(event) {
+        event.preventDefault();
+        const form = event.target;
+        const btn = document.getElementById('btn-quick-add');
+        const originalText = btn.innerText;
+
+        try {
+            btn.disabled = true;
+            btn.innerText = 'Creating Account...';
+
+            const formData = new FormData(form);
+            // Flag as a lead
+            formData.append('account_status', 'Lead');
+            formData.append('action', 'register_customer'); // Reuse existing registration logic if possible or create new API
+
+            const response = await fetch('api/save_lead.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                btn.style.background = '#22c55e';
+                btn.innerText = '✓ Lead Created!';
+                setTimeout(() => location.reload(), 800);
+            } else {
+                throw new Error(data.error || 'Registration failed');
             }
+        } catch (err) {
+            console.error("Registration failed", err);
+            alert("Failed to create lead: " + err.message);
+            btn.disabled = false;
+            btn.innerText = originalText;
         }
     }
 </script>

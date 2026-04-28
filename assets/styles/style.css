@@ -236,6 +236,7 @@ input[type="submit"]:active {
     padding: 14px 24px;
     border-radius: 12px;
     background: var(--accent-color);
+    color: white !important;
     font-weight: 800;
     border: none;
     cursor: pointer;

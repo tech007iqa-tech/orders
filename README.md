@@ -6,15 +6,18 @@ A modern, responsive web application for managing warehouse hardware inventory a
 
 ## ✨ Key Features
 
--   **CRM & Relationship Hub**: Full-page lead management with automated balance tracking and a detailed **Historical Interaction Timeline**.
--   **Priority Follow-ups**: Automated "Call Today" logic that highlights accounts requiring immediate attention based on follow-up dates.
+-   **Role-Based Access Control (RBAC)**: Distinct permissions for **Administrators** (Full Access) and **Warehouse Operators** (Inventory Only).
+-   **Real-time Stock Alerts**: Concurrency control prevents data overwrites when multiple users manage the same inventory zone simultaneously.
+-   **CRM & Relationship Hub**: Full-page lead management with automated balance tracking, a visual **Pulse Timeline**, and **One-Tap Quick Actions** for rapid interaction logging.
+-   **Priority Follow-ups & Quick Capture**: Automated "Call Today" logic and a streamlined **Quick Add Lead** modal for capturing prospects instantly.
+-   **Auto-Batch Registration Flow**: Zero-click fulfillment logic that automatically initializes a new order batch and redirects users directly to the hardware intake terminal upon customer creation.
 -   **Warehouse Location Status**: Track the operational state of every zone (Working, Audit, Warehoused, Idle) with color-coded visual cues.
+-   **High-Performance Joins**: Implements SQLite `ATTACH DATABASE` logic to correlate customers and orders at the engine level for lightning-fast lookups.
 -   **Smart Sorting Engine**: Advanced sorting in the Warehouse Gate by status priority, shelf density (item count), or alphabetical order, with persistent memory.
--   **Intelligent Customer Registry**: Sort the registry by Date, Name, Total Orders, or LTV, with session-based memory.
+-   **Intelligent Customer Registry**: Sort the registry by Date, Name, Total Orders, or LTV, with session-based memory and detailed **Active Batch Pipelines**.
 -   **Enhanced Warehouse Exports**: CSVs now include active location headers (📍), smart category mapping, and detailed battery health metadata.
 -   **Anti-Refresh Pattern (PRG)**: Implements the **Post/Redirect/Get** pattern for zero-error form submissions.
 -   **Zero-Config Backend**: Utilizes **SQLite** — completely portable, no server setup required.
--   **iOS Safari Optimized**: `16px` input enforcement, `100dvh` viewport fix, and momentum scrolling support.
 
 ---
 
@@ -23,12 +26,12 @@ A modern, responsive web application for managing warehouse hardware inventory a
 | Layer | Technology |
 | :--- | :--- |
 | **Backend** | PHP 8.x with Scalable Route Mapping |
-| **Database** | SQLite v3 (Multiple DB Architecture: `customers`, `orders`, `users`, `warehouse`) |
-| **Security** | `.htaccess` protected SQLite databases & Session-guarded routes |
+| **Database Manager**| Centralized **PDO Singleton** with Foreign Key enforcement & Cross-DB Joining |
+| **Database** | SQLite v3 (Modular Architecture: `customers`, `orders`, `users`, `warehouse`) |
+| **Security** | RBAC Session Guard, `.htaccess` DB protection, & CSRF-resistant PRG patterns |
 | **Frontend UI** | Modern HTML5 & Vanilla CSS (glassmorphism, CSS Variables) |
 | **Logic** | Vanilla JavaScript (ES6+) with dedicated /api/ AJAX endpoints |
-| **Cache Busting**| Automated dynamic versioning using `filemtime()` for all JS/CSS assets |
-| **State** | PHP Sessions + Secure JSON DOM injection (no global namespace pollution) |
+| **Concurrency** | Optimistic Locking using `updated_at` synchronization for inventory |
 
 ---
 
@@ -48,9 +51,10 @@ A modern, responsive web application for managing warehouse hardware inventory a
 │   ├── warehouse.php           # Warehouse stock & location management
 │   └── settings.php           # Admin controls & maintenance tools
 ├── core/
-│   ├── auth.php                # Session guard
-│   ├── login.php               # Login form
-│   └── logout.php             # Session destroyer
+│   ├── database.php            # Centralized PDO Singleton & Cross-DB Manager
+│   ├── auth.php                # Role-based session guard
+│   ├── login.php               # Multi-role authentication & migration engine
+│   └── logout.php              # Session destroyer
 ├── assets/
 │   ├── styles/
 │   │   ├── style.css           # Universal design system tokens & base styles

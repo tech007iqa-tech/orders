@@ -182,6 +182,31 @@ try {
         $stmt = $conn->query($sql);
         $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Fetch Detailed Orders List for all customers in one go
+        $order_map = [];
+        try {
+            // Re-use attached orders_db or query it directly if not attached
+            $sql_orders = "
+                SELECT o.*, 
+                       (SELECT SUM(quantity) FROM orders_db.items WHERE order_id = o.order_id) as total_qty,
+                       (SELECT SUM(quantity * unit_price) FROM orders_db.items WHERE order_id = o.order_id) as total_value
+                FROM orders_db.orders o
+                ORDER BY o.created_at DESC
+            ";
+            $stmt_o = $conn->query($sql_orders);
+            while ($o = $stmt_o->fetch(PDO::FETCH_ASSOC)) {
+                $order_map[$o['customer_id']][] = $o;
+            }
+        } catch (Exception $e) {
+            // Silently fail if orders DB is not ready
+        }
+
+        // Attach orders to customers
+        foreach ($customers as &$c) {
+            $c['orders_list'] = $order_map[$c['customer_id']] ?? [];
+        }
+        unset($c); // Clean up reference
+
         // Advanced Sorting Logic
         usort($customers, function($a, $b) use ($sort_param) {
             switch ($sort_param) {

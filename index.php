@@ -155,7 +155,7 @@ include 'core/auth.php';
         ?>
     </div>
     <footer class="footer" role="contentinfo">
-        <p>&copy; <?= date('Y') ?> IQA Metal | Managed Inventory & Order Fulfillments</p>
+        <p>&copy; <?= date('M Y') ?> IQA Metal | Managed Inventory & Order Fulfillments <a href="../app/">Labels</a></p>
     </footer>
     <!-- Load view-specific JavaScript -->
     <?php if ($active_key === 'new_order'): ?>

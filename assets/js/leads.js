@@ -29,11 +29,41 @@ function closeLeadModal() {
     document.getElementById('leadModal').style.display = 'none';
 }
 
+function quickLog(method) {
+    const today = new Date().toISOString().split('T')[0];
+    const methodInput = document.getElementById('lead_method');
+    const dateInput = document.getElementById('lead_message_date');
+    const noteInput = document.getElementById('new_interaction_note');
+
+    if (methodInput) methodInput.value = method;
+    if (dateInput) dateInput.value = today;
+    
+    const messages = {
+        'Phone': 'Spoke with client via phone.',
+        'Email': 'Sent follow-up email regarding outstanding items.',
+        'Message': 'Sent text/WhatsApp message for quick check-in.'
+    };
+    
+    if (noteInput) {
+        noteInput.value = messages[method] || `Contacted via ${method}.`;
+        noteInput.style.borderColor = 'var(--accent-color)';
+        setTimeout(() => noteInput.style.borderColor = '#cbd5e1', 1000);
+    }
+}
+
 async function loadInteractionHistory(customerId) {
     const historyContainer = document.getElementById('interaction-history');
     if (!historyContainer) return;
 
     historyContainer.innerHTML = '<div style="padding:20px; text-align:center; opacity:0.5;">Loading history...</div>';
+
+    const icons = {
+        'phone': '📞',
+        'email': '📧',
+        'message': '💬',
+        'whatsapp': '📱',
+        'meeting': '🤝'
+    };
 
     try {
         const response = await fetch(`api/get_interaction_logs.php?customer_id=${encodeURIComponent(customerId)}`);
@@ -44,15 +74,23 @@ async function loadInteractionHistory(customerId) {
             return;
         }
 
-        historyContainer.innerHTML = logs.map(log => `
-            <div style="padding:12px; border-bottom:1px solid #f1f5f9; font-size:0.85rem;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <span style="font-weight:800; color:var(--accent-color);">${log.contact_date}</span>
-                    <span style="font-weight:700; color:#94a3b8; font-size:0.7rem; text-transform:uppercase;">via ${log.method || 'Other'}</span>
+        historyContainer.innerHTML = logs.map(log => {
+            const methodLower = (log.method || 'other').toLowerCase();
+            const icon = icons[methodLower] || '📝';
+            
+            return `
+                <div style="padding:15px; border-bottom:1px solid #f1f5f9; font-size:0.85rem; position:relative; padding-left:45px;">
+                    <div style="position:absolute; left:0; top:15px; width:32px; height:32px; background:white; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; box-shadow:0 2px 4px rgba(0,0,0,0.03);">
+                        ${icon}
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <span style="font-weight:800; color:var(--text-main);">${log.contact_date}</span>
+                        <span style="font-weight:700; color:#94a3b8; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em;">${log.method || 'Note'}</span>
+                    </div>
+                    <div style="color:#475569; line-height:1.5; font-weight:500;">${log.note}</div>
                 </div>
-                <div style="color:var(--text-secondary); line-height:1.4;">${log.note}</div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
     } catch (err) {
         console.error("Failed to load history", err);
@@ -95,6 +133,27 @@ async function saveLead(event) {
         alert("Failed to save lead: " + err.message);
         btn.disabled = false;
         btn.innerText = originalText;
+    }
+}
+
+function filterByStatus(status) {
+    // Update tabs UI
+    const event = window.event;
+    if (event && event.target) {
+        document.querySelectorAll('.orders-tab-link').forEach(tab => tab.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    const rows = document.getElementsByClassName('lead-row');
+    for (let row of rows) {
+        const rowStatus = row.getAttribute('data-status').toLowerCase();
+        if (status === 'all') {
+            row.style.display = '';
+        } else if (status === 'lead') {
+            row.style.display = rowStatus === 'lead' ? '' : 'none';
+        } else if (status === 'active') {
+            row.style.display = rowStatus === 'active customer' ? '' : 'none';
+        }
     }
 }
 

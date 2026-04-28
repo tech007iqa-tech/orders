@@ -55,12 +55,21 @@ try {
         $stmt = $conn->prepare($sql);
         try {
             if ($stmt->execute($data)) {
-                $_SESSION['message'] = "<div class='alert success'>Customer created with ID: <strong>{$internal_id}</strong></div>";
+                // AUTOMATIC FRESH BATCH CREATION
+                $conn_o = Database::orders();
+                $new_order_id = 'ORD-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+                
+                $stmt_o = $conn_o->prepare("INSERT INTO orders (order_id, customer_id, status) VALUES (?, ?, 'active')");
+                $stmt_o->execute([$new_order_id, $internal_id]);
+
+                // Direct redirect to order entry for the new customer
+                header("Location: index.php?customer_id=" . urlencode($internal_id) . "&order_id=" . $new_order_id);
+                exit();
             }
         } catch (PDOException $e) {
             $_SESSION['message'] = "<div class='alert error'>Update failed: " . $e->getMessage() . "</div>";
         }
-        header("Location: " . $_SERVER['PHP_SELF']);
+        header("Location: index.php?view=register");
         exit();
     }
 } catch (PDOException $e) {

@@ -16,12 +16,15 @@ Manage the entire B2B database from a high-performance centralized interface.
 - **Live Business Intelligence**:
     - **Lifetime Value (LTV)**: Automatically calculated total gross value displayed as a vibrant currency badge.
     - **Order History**: Real-time summary of active vs. completed batches with deep links.
-    - **CRM & Lead Hub** (`pages/leads.php`):
+- **CRM & Lead Hub** (`pages/leads.php`):
+    - **Executive Conversion Bar**: Real-time tracking of Active Leads and total Pipeline Value.
     - **Priority Follow-ups**: A dedicated "Call Today" section that highlights leads with pending or overdue callback dates.
-    - **Historical Timeline**: A date-separated logging system that preserves every interaction with a customer in a scrollable timeline.
+    - **Visual Pulse Timeline**: A date-separated logging system that maps interaction methods (Phone, Email, Message) to intuitive icons (📞, 📧, 💬).
+    - **One-Tap Quick Actions**: Instantly log common interactions directly from the modal, auto-updating dates and history notes.
+    - **Quick Add Lead**: A high-speed capture modal that allows for seamless lead registration without leaving the CRM pipeline.
     - **Automated Financial Intelligence**: Real-time calculation of **Total Balance** and **Last Order ID** from the orders database.
-    - **Lead Conversion**: Track accounts from initial "Lead" status through to "Active Customer" with custom source and interest tracking.
-- **Account Management**:
+- **Account Management & Auto-Batch Workflow**:
+    - **Zero-Click Fulfillment**: Registering a full customer via `pages/new_customer.php` automatically initializes a new "Fresh Batch" (order) and teleports the user directly to the Order Entry screen.
     - **Secure Cascading Deletion**: Permanently remove a customer and all their associated orders/items with a single action.
 
 ### 2. Batch Builder (Order Entry) — `pages/new_order.php`
@@ -71,26 +74,34 @@ Professional administrative oversight for all active and completed batches.
 
 ### 6. ODT Label Generation — `generate_odt.php`
 
-### 7. System Settings
-Administrative control panel for system-wide configuration.
-- **Staff Management**: Add or remove access for employees.
-- **Invoice Signatures**: Define the "Approved By" name used on official documents.
-- **Maintenance Tools**: One-click cleanup of inactive customers with zero orders.
+### 7. Role-Based Access Control (RBAC)
+The application implements a secure, role-based permission system to partition administrative and operational tasks.
+- **User Roles**:
+    - **Admin**: Full access to all system modules, including Customer Registry, Leads, Orders, and Settings. Only the root `admin` account can manage other users.
+    - **Operator**: Restricted access. Automatically redirected to the Warehouse Portal upon login. Cannot access CRM leads, full order registries, or system maintenance tools.
+- **Enforcement**: Access is verified at the routing level in `index.php` and via the `core/auth.php` session guard.
+
+### 8. Real-time Stock Alerts (Concurrency Control)
+To prevent data loss in multi-user environments, the Warehouse module implements an optimistic locking strategy.
+- **Timestamp Sync**: Every inventory item includes an `updated_at` timestamp.
+- **Collision Detection**: When saving changes, the system compares the form's `last_updated_at` with the database's current state.
+- **Collision Response**: If a mismatch is detected (meaning another user saved changes while you were editing), the save is blocked and a **CONCURRENCY_ERROR** alert is displayed.
 
 ---
 
 ## 🛠 Technical Architecture
 
-| Component | Technology |
-| :--- | :--- |
-| **Backend** | PHP 8.x (XAMPP Environment) with scalable Route Mapping |
-| **Database** | SQLite 3 (Distributed: `customers.db`, `orders.db`, `users.db`, `warehouse.db`) |
-| **API Layer** | Dedicated JSON endpoints in `/api/` for decoupled business logic |
-| **Frontend Logic** | Vanilla JavaScript (ES6+) with secure JSON state management |
-| **Styling** | Modern Vanilla CSS with CSS Variables, glassmorphism, and mobile-first flex layouts |
-| **Cache Busting**| Automated dynamic versioning using `filemtime()` for all JS/CSS assets |
+### 1. Centralized Database Manager (`core/database.php`)
+The system utilizes a **Singleton Pattern** to manage multiple SQLite connections efficiently.
+- **Connection Pooling**: `Database::getConnection($db_name)` ensures only one PDO instance exists per database file during a request.
+- **Cross-DB Joining**: The manager supports the `ATTACH DATABASE` command, allowing complex JOIN queries between `customers.db` and `orders.db` at the database engine level, eliminating slow PHP-side loops.
 
-### Mobile-First & iOS Safari Optimizations
+### 2. Session & Security Hardening
+- **Session Fixation Protection**: The system rotates the session ID using `session_regenerate_id(true)` upon successful login to prevent hijacking.
+- **Auto-Redirection**: Authenticated users are automatically redirected away from the login page to their appropriate dashboard based on their role.
+- **Distributed SQLite**: Data is partitioned into modular `.db` files (Customers, Orders, Users, Warehouse) to minimize lock contention and improve portability.
+
+### 3. Mobile-First & iOS Safari Optimizations
 - **16px Input Enforcement**: All modal inputs use `font-size: 16px !important` to prevent iOS Safari auto-zoom on focus.
 - **Dynamic Viewport Height**: Overlay uses `100dvh` so it fits correctly behind Safari's collapsible toolbar.
 - **Momentum Scrolling**: Modal content uses `-webkit-overflow-scrolling: touch` for native-feel scrolling when the keyboard appears.
